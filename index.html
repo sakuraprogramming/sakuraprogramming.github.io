@@ -147,6 +147,95 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/05/20/%E7%AC%AC%E4%B8%89%E7%AF%87-%E5%A4%A7%E6%95%B0%E6%8D%AE%E9%9B%86%E7%BE%A4%E7%9A%84%E9%85%8D%E7%BD%AE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="sakura">
+      <meta itemprop="description" content="大数据废物的博客之旅">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Sakura的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2023/05/20/%E7%AC%AC%E4%B8%89%E7%AF%87-%E5%A4%A7%E6%95%B0%E6%8D%AE%E9%9B%86%E7%BE%A4%E7%9A%84%E9%85%8D%E7%BD%AE/" class="post-title-link" itemprop="url">第三篇: 大数据集群的配置</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2023-05-20 22:30:13 / 修改时间：22:31:45" itemprop="dateCreated datePublished" datetime="2023-05-20T22:30:13+08:00">2023-05-20</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="一、虚拟机的设置"><a href="#一、虚拟机的设置" class="headerlink" title="一、虚拟机的设置"></a>一、虚拟机的设置</h2><p>​	这里我采用的是使用虚拟机构建大数据集群，如果有钱也可以采用云平台进行大数据集群的构建。</p>
+<p>​	 在VMware的虚拟网络编辑器中，将VMnet8虚拟网卡的：</p>
+<p>​		网段设置为192.168.88.0</p>
+<p>​		网关设置为：192.168.88.2</p>
+<p>​	下载CentOs7.6的镜像文件，然后创建新的虚拟机，选择标准安装，全自动化安装。等待安装完成以后，再进行克隆，克隆完整的系统，这里克隆三个，分别命名为node1、node2、node3，设置node1的内存为4GB、node2和node3的内存为2GB。</p>
+<p>​	然后打开node1，修改主机名，并修改固定IP为：192.168.88.101，node2和node3分别为102和103</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 修改主机名</span></span><br><span class="line">hostnamectl <span class="built_in">set</span>-hostname node1</span><br><span class="line"><span class="comment"># 修改IP地址</span></span><br><span class="line">vim /etc/sysconfig/network-scripts/ifcfg-ens33</span><br><span class="line">IPADDR=<span class="string">&quot;192.168.88.101&quot;</span></span><br><span class="line"><span class="comment"># 重启网卡</span></span><br><span class="line">systemctl restart network</span><br></pre></td></tr></table></figure>
+
+<p>在windows系统中修改hosts文件,新增以下内容</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.101</span> node1</span><br><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.102</span> node2</span><br><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.103</span> node3</span><br></pre></td></tr></table></figure>
+
+<p>在3台Linux的&#x2F;etc&#x2F;hosts中,新增以下内容:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.101</span> node1</span><br><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.102</span> node2</span><br><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.103</span> node3</span><br></pre></td></tr></table></figure>
+
+<p>配置SSH免密登录(每台都要执行一遍)</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ssh-keygen -t rsa -b 4096</span><br><span class="line">ssh-copy-id node1</span><br><span class="line">ssh-copy-id node2</span><br><span class="line">ssh-copy-id node3</span><br></pre></td></tr></table></figure>
+
+<p>新增hadoop普通用户.然后重复上诉的SSH操作:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 新增普通用户</span></span><br><span class="line">useradd hadoop</span><br><span class="line"><span class="comment"># 设置密码</span></span><br><span class="line">passwd hadoop</span><br><span class="line"><span class="comment"># 切换用户</span></span><br><span class="line">su - hadoop</span><br></pre></td></tr></table></figure>
+
+<p>下载JDK</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 新建文件夹存储jdk</span></span><br><span class="line">mkdir -p /export/server</span><br><span class="line"><span class="comment"># 解压文件</span></span><br><span class="line">tar -zxvf jdk-8u351-linux-x64.tar.gz -C /export/server</span><br><span class="line"><span class="comment"># 配置jdk的软链接</span></span><br><span class="line">ln -s /export/server/jdk1<span class="number">.8</span><span class="number">.0_351</span> jdk</span><br><span class="line"><span class="comment"># 配置环境变量(编辑/etc/profile文件)</span></span><br><span class="line">export JAVA_HOME=/export/server/jdk</span><br><span class="line">export PATH=$PATH:$JAVA_HOME/<span class="built_in">bin</span></span><br><span class="line"><span class="comment"># 生效环境变量</span></span><br><span class="line">source /etc/profile</span><br><span class="line"><span class="comment"># 配置java执行程序的软链接(先删除自带的java,再添加下载的)</span></span><br><span class="line">rm -f /usr/<span class="built_in">bin</span>/java</span><br><span class="line">ln -s /export/server/jdk/<span class="built_in">bin</span>/java /usr/<span class="built_in">bin</span>/java</span><br><span class="line"><span class="comment"># 验证</span></span><br><span class="line">java -version</span><br><span class="line">javac -version</span><br></pre></td></tr></table></figure>
+
+<p>为了防止防火墙干扰大数据的软件,将防火墙关闭</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 每一台都执行</span></span><br><span class="line">systemctl stop firewalld</span><br><span class="line">systemctl disable firewalld</span><br><span class="line"><span class="comment"># 关闭SELinux</span></span><br><span class="line">vim /etc/sysconfig/selinux</span><br><span class="line"><span class="comment"># 修改</span></span><br><span class="line">SELINUX=disabled</span><br></pre></td></tr></table></figure>
+
+<p>调整每个服务器的时区为中国东八区的时区(校验时间)</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 安装ntp软件</span></span><br><span class="line">yum install -y ntp</span><br><span class="line"><span class="comment"># 更新时区</span></span><br><span class="line">rm -f /etc/localtime</span><br><span class="line">sudo ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime</span><br><span class="line"><span class="comment"># 同步时间</span></span><br><span class="line">ntpdate -u ntp.aliyun.com</span><br><span class="line"><span class="comment"># 开启ntp服务并设置开机自启动</span></span><br><span class="line">systemctl start ntpd</span><br><span class="line">systemctl enable ntpd</span><br></pre></td></tr></table></figure>
+
+<h2 id="二、Hadoop的部署"><a href="#二、Hadoop的部署" class="headerlink" title="二、Hadoop的部署"></a>二、Hadoop的部署</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 上传文件到node1</span></span><br><span class="line"><span class="comment"># 解压</span></span><br><span class="line">tar -zxvf hadoop-<span class="number">3.3</span><span class="number">.4</span>.tar.gz -C /export/server</span><br><span class="line"><span class="comment"># 构建软链接</span></span><br><span class="line">ln -s /export/server/hadoop-<span class="number">3.3</span><span class="number">.4</span> hadoop</span><br><span class="line"><span class="comment"># 先cd /export/server/hadoop，然后再cd etc/hadoop</span></span><br><span class="line">vim workers</span><br><span class="line"><span class="comment"># 填入</span></span><br><span class="line">node1</span><br><span class="line">node2</span><br><span class="line">node3</span><br><span class="line"><span class="comment"># 然后配置hadoop-env.sh文件，同样使用vim hadoop-env.sh</span></span><br><span class="line">export JAVA_HOME=/export/server/jdk</span><br><span class="line">export HADOOP_HOME=/export/server/hadoop</span><br><span class="line">export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop</span><br><span class="line">export HADOOP_LOG_DIR=$HADOOP_HOME/logs</span><br><span class="line"><span class="comment"># 配置core-site.xml</span></span><br><span class="line">&lt;configuration&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;fs.defaultFS&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;hdfs://node1:<span class="number">8020</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;io.file.buffer.size&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">131072</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">&lt;/configuration&gt;</span><br><span class="line"><span class="comment"># 配置hdfs-site.xml</span></span><br><span class="line">&lt;configuration&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.datanode.data.<span class="built_in">dir</span>.perm&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">700</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.namenode.name.<span class="built_in">dir</span>&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;/data/nn&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.namenode.hosts&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;node1,node2,node3&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">&lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.blocksize&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">268435456</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.namenode.handler.count&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">100</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.datanode.data.<span class="built_in">dir</span>&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;/data/dn&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">&lt;/configuration&gt;</span><br><span class="line"><span class="comment"># node1节点</span></span><br><span class="line">mkdir -p /data/nn</span><br><span class="line">mkdir -p /data/dn</span><br><span class="line"><span class="comment"># node2和node3</span></span><br><span class="line">mkdir -p /data/dn</span><br><span class="line"><span class="comment"># 复制hadoop到node2和node3</span></span><br><span class="line">cd /export/server</span><br><span class="line">scp -r hadoop-<span class="number">3.3</span><span class="number">.4</span> node2:`pwd`/</span><br><span class="line">scp -r hadoop-<span class="number">3.3</span><span class="number">.4</span> node3:`pwd`/</span><br><span class="line"><span class="comment"># 在node2和node3分别建立软链接</span></span><br><span class="line">ln -s /export/server/hadoop-<span class="number">3.3</span><span class="number">.4</span> /export/server/hadoop</span><br><span class="line"><span class="comment"># 配置环境变量 vim /etc/profile (退回顶级目录执行)</span></span><br><span class="line">export HADOOP_HOME=/export/server/hadoop</span><br><span class="line">export PATH=$PATH:$HADOOP_HOME/<span class="built_in">bin</span>:$HADOOP_HOME/sbin</span><br><span class="line"><span class="comment"># source /etc/profile 生效环境变量</span></span><br><span class="line"><span class="comment"># 使用root身份,将权限给普通用户,三台服务器都要</span></span><br><span class="line">chown -R hadoop:hadoop /data</span><br><span class="line">chown -R hadoop:hadoop /export</span><br><span class="line"><span class="comment"># 格式化namenode</span></span><br><span class="line">su - hadoop <span class="comment"># 切换为hadoop普通用户</span></span><br><span class="line">hadoop namenode -<span class="built_in">format</span> <span class="comment"># 格式化</span></span><br><span class="line"><span class="comment"># 启动HDFS集群</span></span><br><span class="line">start-dfs.sh</span><br><span class="line"><span class="comment"># 关闭HDFS集群</span></span><br><span class="line">stop-dfs.sh</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://example.com/2023/05/18/%E7%AC%AC%E4%BA%8C%E7%AF%87%EF%BC%9AES6-ES11%E7%9A%84%E6%96%B0%E8%AF%AD%E6%B3%95/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -458,7 +547,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">2</span>
+          <span class="site-state-item-count">3</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
