@@ -1,21 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>第一篇: 使用hexo+Github搭建个人博客系统</title>
-    <url>/2023/05/18/%E7%AC%AC%E4%B8%80%E7%AF%87%EF%BC%9A%E4%BD%BF%E7%94%A8hexo-Github%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E7%B3%BB%E7%BB%9F/</url>
-    <content><![CDATA[<h2 id="1-环境准备"><a href="#1-环境准备" class="headerlink" title="1.环境准备"></a>1.环境准备</h2><ul>
-<li><p>Github的注册和仓库的创建</p>
-</li>
-<li><p>Git的安装以及绑定Github</p>
-</li>
-<li><p>NodeJS和Hexo的安装</p>
-</li>
-<li><p>切换主题</p>
-</li>
-</ul>
-]]></content>
-  </entry>
-  <entry>
     <title>第三篇: 大数据集群的配置</title>
     <url>/2023/05/20/%E7%AC%AC%E4%B8%89%E7%AF%87-%E5%A4%A7%E6%95%B0%E6%8D%AE%E9%9B%86%E7%BE%A4%E7%9A%84%E9%85%8D%E7%BD%AE/</url>
     <content><![CDATA[<h2 id="一、虚拟机的设置"><a href="#一、虚拟机的设置" class="headerlink" title="一、虚拟机的设置"></a>一、虚拟机的设置</h2><p>​	这里我采用的是使用虚拟机构建大数据集群，如果有钱也可以采用云平台进行大数据集群的构建。</p>
@@ -49,6 +34,187 @@
 
 <h2 id="二、Hadoop的部署"><a href="#二、Hadoop的部署" class="headerlink" title="二、Hadoop的部署"></a>二、Hadoop的部署</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 上传文件到node1</span></span><br><span class="line"><span class="comment"># 解压</span></span><br><span class="line">tar -zxvf hadoop-<span class="number">3.3</span><span class="number">.4</span>.tar.gz -C /export/server</span><br><span class="line"><span class="comment"># 构建软链接</span></span><br><span class="line">ln -s /export/server/hadoop-<span class="number">3.3</span><span class="number">.4</span> hadoop</span><br><span class="line"><span class="comment"># 先cd /export/server/hadoop，然后再cd etc/hadoop</span></span><br><span class="line">vim workers</span><br><span class="line"><span class="comment"># 填入</span></span><br><span class="line">node1</span><br><span class="line">node2</span><br><span class="line">node3</span><br><span class="line"><span class="comment"># 然后配置hadoop-env.sh文件，同样使用vim hadoop-env.sh</span></span><br><span class="line">export JAVA_HOME=/export/server/jdk</span><br><span class="line">export HADOOP_HOME=/export/server/hadoop</span><br><span class="line">export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop</span><br><span class="line">export HADOOP_LOG_DIR=$HADOOP_HOME/logs</span><br><span class="line"><span class="comment"># 配置core-site.xml</span></span><br><span class="line">&lt;configuration&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;fs.defaultFS&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;hdfs://node1:<span class="number">8020</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;io.file.buffer.size&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">131072</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">&lt;/configuration&gt;</span><br><span class="line"><span class="comment"># 配置hdfs-site.xml</span></span><br><span class="line">&lt;configuration&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.datanode.data.<span class="built_in">dir</span>.perm&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">700</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.namenode.name.<span class="built_in">dir</span>&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;/data/nn&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.namenode.hosts&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;node1,node2,node3&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">&lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.blocksize&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">268435456</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.namenode.handler.count&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">100</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.datanode.data.<span class="built_in">dir</span>&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;/data/dn&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">&lt;/configuration&gt;</span><br><span class="line"><span class="comment"># node1节点</span></span><br><span class="line">mkdir -p /data/nn</span><br><span class="line">mkdir -p /data/dn</span><br><span class="line"><span class="comment"># node2和node3</span></span><br><span class="line">mkdir -p /data/dn</span><br><span class="line"><span class="comment"># 复制hadoop到node2和node3</span></span><br><span class="line">cd /export/server</span><br><span class="line">scp -r hadoop-<span class="number">3.3</span><span class="number">.4</span> node2:`pwd`/</span><br><span class="line">scp -r hadoop-<span class="number">3.3</span><span class="number">.4</span> node3:`pwd`/</span><br><span class="line"><span class="comment"># 在node2和node3分别建立软链接</span></span><br><span class="line">ln -s /export/server/hadoop-<span class="number">3.3</span><span class="number">.4</span> /export/server/hadoop</span><br><span class="line"><span class="comment"># 配置环境变量 vim /etc/profile (退回顶级目录执行)</span></span><br><span class="line">export HADOOP_HOME=/export/server/hadoop</span><br><span class="line">export PATH=$PATH:$HADOOP_HOME/<span class="built_in">bin</span>:$HADOOP_HOME/sbin</span><br><span class="line"><span class="comment"># source /etc/profile 生效环境变量</span></span><br><span class="line"><span class="comment"># 使用root身份,将权限给普通用户,三台服务器都要</span></span><br><span class="line">chown -R hadoop:hadoop /data</span><br><span class="line">chown -R hadoop:hadoop /export</span><br><span class="line"><span class="comment"># 格式化namenode</span></span><br><span class="line">su - hadoop <span class="comment"># 切换为hadoop普通用户</span></span><br><span class="line">hadoop namenode -<span class="built_in">format</span> <span class="comment"># 格式化</span></span><br><span class="line"><span class="comment"># 启动HDFS集群</span></span><br><span class="line">start-dfs.sh</span><br><span class="line"><span class="comment"># 关闭HDFS集群</span></span><br><span class="line">stop-dfs.sh</span><br></pre></td></tr></table></figure>
 
+]]></content>
+  </entry>
+  <entry>
+    <title>第四章:Linux学习基础篇</title>
+    <url>/2023/07/13/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/</url>
+    <content><![CDATA[<h1 id="Linux学习笔记"><a href="#Linux学习笔记" class="headerlink" title="Linux学习笔记"></a>Linux学习笔记</h1><p>三种网络连接方式：</p>
+<pre><code>- 桥接模式：同一个网段建立连接，容易产生IP冲突
+- NAT模式：网络地址转换，生成虚拟的网络地址，通过代理地址访问外网
+- 主机模式：独立的系统，不与外界发生联系
+</code></pre>
+<p>安装vmtool，可以创建Windows和Linux共享文件夹</p>
+<h3 id="Linux的文件结构"><a href="#Linux的文件结构" class="headerlink" title="Linux的文件结构"></a>Linux的文件结构</h3><p>​		Linux中，一切皆是文件，Linux文件系统是采用级层式的树状目录结构，在此结构中的最上层是根目录”&#x2F;“，然后在此目录下再创建其他的目录。</p>
+<p><img src="https://img1.imgtp.com/2023/06/08/COzrs7Ji.jpg"></p>
+<ul>
+<li><p>&#x2F;bin <em><strong>[常用]</strong></em> 是Binary的缩写,这个目录存放着最经常使用的命令</p>
+</li>
+<li><p>&#x2F;sbin s就是Super User的意思,这里存放的是系统管理员使用的系统管理程序</p>
+</li>
+<li><p>&#x2F;home <em><strong>[常用]</strong></em>  存放普通用户的主目录,在Linux中每个用户都有一个自己的目录,一般该目录名是以用户的账号命名</p>
+</li>
+<li><p>&#x2F;root <em><strong>[常用]</strong></em> 该目录为系统管理员,也称作超级权限者的用户主目录</p>
+</li>
+<li><p>&#x2F;lib 系统开机所需要最基本的动态连接共享池,其作用类似于windows里的DLL文件,几乎所有的应用程序都需要用到这些共享库</p>
+</li>
+<li><p>&#x2F;lost+found 一般为空,当系统非法关机后,这里就存放了一些文件</p>
+</li>
+<li><p>&#x2F;etc <em><strong>[常用]</strong></em> 所有的系统管理所需要的配置文件和子目录 ,比如安装mysql数据库 my.conf</p>
+</li>
+<li><p>&#x2F;usr <em><strong>[常用]</strong></em> 十分重要的目录,用户的很多应用程序和文件都放在这个目录下,类似与windows下的program files目录</p>
+</li>
+<li><p>&#x2F;boot <em><strong>[常用]</strong></em> 存放的是启动Linux时使用的一些核心文件,包括一些连接文件以及镜像文件</p>
+</li>
+<li><p>&#x2F;prov <em><strong>[不能动]</strong></em> 这个目录是一个虚拟的目录,它是系统内存的映射,访问这个目录来获取系统信息</p>
+</li>
+<li><p>&#x2F;srv <em><strong>[不能动]</strong></em> service的缩写,该目录存放一些服务启动之后需要提取的数据</p>
+</li>
+<li><p>&#x2F;sys <em><strong>[不能动]</strong></em> 这是Linux2.6内核的一个很大的变化,该目录下安装了2.6内核中新出现的一个文件系统sysfs</p>
+</li>
+<li><p>&#x2F;tmp 这个目录是用来存放一些临时文件的</p>
+</li>
+<li><p>&#x2F;dev 类似于windows的设备管理器,把所有的硬件用文件的形式存储</p>
+</li>
+<li><p>&#x2F;media <em><strong>[常用]</strong></em> Linux系统会自动识别一些设备,例如U盘,光驱等等,当识别后,Linux会把识别的设备挂载到这个目录下</p>
+</li>
+<li><p>&#x2F;mnt <em><strong>[常用]</strong></em> 系统提供该目录是为了让用户临时挂载别的文件系统的,我们可以将外部的存储挂载在&#x2F;mnt上,然后进入该目录就可以查看里的内容了</p>
+</li>
+<li><p>&#x2F;opt 这是给主机额外安装软件所摆放的目录.如安装ORACLE数据库就可以放到该目录下.默认为空</p>
+</li>
+<li><p>&#x2F;usr&#x2F;local <em><strong>[常用]</strong></em> 这是另一个给主机额外安装软件所安装的目录,一般是通过编译源码方式安装的程序</p>
+</li>
+<li><p>&#x2F;var <em><strong>[常用]</strong></em> 这个目录中存放着在不断扩充着的东西,习惯将经常被修改的目录放在这个目录下.包括各种日志文件</p>
+</li>
+<li><p>&#x2F;selinux <em><strong>[security-enhanced linux]</strong></em> SELinux是一种安全子系统,它能控制程序只能访问特定文件,有三种工作模式,可以自行设置.</p>
+</li>
+</ul>
+<h2 id="Linux远程登录"><a href="#Linux远程登录" class="headerlink" title="Linux远程登录"></a>Linux远程登录</h2><p>两个常用工具：Xshell(远程登录)、Xftp(远程文件传输)</p>
+<h2 id="Linux-Vi和Vim"><a href="#Linux-Vi和Vim" class="headerlink" title="Linux_Vi和Vim"></a>Linux_Vi和Vim</h2><p>三种模式</p>
+<ul>
+<li>正常模式，即默认的模式</li>
+<li>插入模式，按下i,I,o,O,a,A,r,R等任何一个字母即可进入编辑模式</li>
+<li>命令行模式 输入esc ,再输入: 即可进入 ,提供相关指令,完成读取,存盘,替换,离开vim,显示行号等的动作</li>
+</ul>
+<p><img src="https://img1.imgtp.com/2023/09/17/GcbZTD5M.png"></p>
+<p>常用的快捷键</p>
+<p><img src="https://img1.imgtp.com/2023/09/17/nBXVztZn.png"></p>
+<p>对应的键盘图</p>
+<p><img src="https://img1.imgtp.com/2023/09/17/p09Ml2Z8.png"></p>
+<h2 id="Linux开机、重启、用户登录注销"><a href="#Linux开机、重启、用户登录注销" class="headerlink" title="Linux开机、重启、用户登录注销"></a>Linux开机、重启、用户登录注销</h2><p><img src="https://img1.imgtp.com/2023/09/17/QTALVgkn.png"><img src="https://img1.imgtp.com/2023/09/17/2mohFa6g.png"></p>
+<h2 id="Linux用户管理"><a href="#Linux用户管理" class="headerlink" title="Linux用户管理"></a>Linux用户管理</h2><p><img src="https://img1.imgtp.com/2023/09/17/NYwvsOAp.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/2Z1QV8YA.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/WG42hTvs.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/iNfA8QKR.png"></p>
+<p>查询当前用户信息 who am I</p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\11.png" alt="11"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\12.png" alt="12"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\13.png" alt="13"></p>
+<h2 id="Linux使用指令"><a href="#Linux使用指令" class="headerlink" title="Linux使用指令"></a>Linux使用指令</h2><pre><code>### Linux运行级别
+</code></pre>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\14.png" alt="14"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\15.png" alt="15"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\16.png" alt="16"></p>
+<h2 id="Linux文件目录指令"><a href="#Linux文件目录指令" class="headerlink" title="Linux文件目录指令"></a>Linux文件目录指令</h2><p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\17.png" alt="17"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\18.png" alt="18"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\19.png" alt="19"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\20.png" alt="20"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\21.png" alt="21"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\22.png" alt="22"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\23.png" alt="23"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\24.png" alt="24"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\25.png" alt="25"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\26.png" alt="26"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\27.png" alt="27"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\28.png" alt="28"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\29.png" alt="29"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\30.png" alt="30"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\31.png" alt="31"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\32.png" alt="32"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\34.png" alt="34"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\35.png" alt="35"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\36.png" alt="36"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\37.png" alt="37"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\38.png" alt="38"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\39.png" alt="39"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\40.png" alt="40"></p>
+<h2 id="Linux组"><a href="#Linux组" class="headerlink" title="Linux组"></a>Linux组</h2><p>Linux中，每个用户都有组，文件有三个概念（所有者、所在组、其它组）</p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\41.png" alt="41"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\42.png" alt="42"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\43.png" alt="43"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\44.png" alt="44"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\45.png" alt="45"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\46.png" alt="46"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\47.png" alt="47"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\48.png" alt="48"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\49.png" alt="49"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\50.png" alt="50"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\51.png" alt="51"></p>
+<h2 id="定时任务调度"><a href="#定时任务调度" class="headerlink" title="定时任务调度"></a>定时任务调度</h2><p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\52.png"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\53.png" alt="53"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\54.png" alt="54"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\55.png" alt="55"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\57.png" alt="57"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\58.png" alt="58"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\59.png" alt="59"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\60.png" alt="60"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\61.png" alt="61"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\62.png" alt="62"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\63.png" alt="63"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\64.png" alt="64"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\65.png" alt="65"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\66.png" alt="66"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\67.png" alt="67"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\68.png" alt="68"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\69.png" alt="69"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\70.png" alt="70"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\71.png" alt="71"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\72.png" alt="72"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\73.png" alt="73"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\74.png" alt="74"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\75.png" alt="75"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\76.png" alt="76"></p>
+<h2 id="Linux进程管理"><a href="#Linux进程管理" class="headerlink" title="Linux进程管理"></a>Linux进程管理</h2><p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\77.png" alt="77"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\78.png" alt="78"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\79.png" alt="79"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\80.png" alt="80"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\81.png" alt="81"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\82.png" alt="82"></p>
+<h2 id="Linux服务管理"><a href="#Linux服务管理" class="headerlink" title="Linux服务管理"></a>Linux服务管理</h2><p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\83.png" alt="83"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\84.png" alt="84"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\85.png" alt="85"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\86.png" alt="86"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\87.png" alt="87"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\88.png" alt="88"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\89.png" alt="89"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\90.png" alt="90"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\91.png" alt="91"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\92.png" alt="92"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\93.png" alt="93"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\94.png" alt="94"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\95.png" alt="95"></p>
+<h2 id="Linux的Shell编程"><a href="#Linux的Shell编程" class="headerlink" title="Linux的Shell编程"></a>Linux的Shell编程</h2><p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\96.png" alt="96"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\97.png" alt="97"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\98.png" alt="98"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\99.png" alt="99"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\100.png" alt="100"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\101.png" alt="101"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\102.png" alt="102"></p>
+]]></content>
+  </entry>
+  <entry>
+    <title>第一篇: 使用hexo+Github搭建个人博客系统</title>
+    <url>/2023/05/18/%E7%AC%AC%E4%B8%80%E7%AF%87%EF%BC%9A%E4%BD%BF%E7%94%A8hexo-Github%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E7%B3%BB%E7%BB%9F/</url>
+    <content><![CDATA[<h2 id="1-环境准备"><a href="#1-环境准备" class="headerlink" title="1.环境准备"></a>1.环境准备</h2><ul>
+<li><p>Github的注册和仓库的创建</p>
+</li>
+<li><p>Git的安装以及绑定Github</p>
+</li>
+<li><p>NodeJS和Hexo的安装</p>
+</li>
+<li><p>切换主题</p>
+</li>
+</ul>
 ]]></content>
   </entry>
   <entry>
@@ -165,98 +331,6 @@
 <figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//大数值的运算</span></span><br><span class="line"><span class="keyword">let</span> n=<span class="number">123</span>;</span><br><span class="line"><span class="keyword">let</span> m=<span class="title class_">BigInt</span>(n); </span><br></pre></td></tr></table></figure>
 
 <p>globalThis:始终指向全局对象</p>
-]]></content>
-  </entry>
-  <entry>
-    <title>第四章:Linux学习基础篇</title>
-    <url>/2023/07/13/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/</url>
-    <content><![CDATA[<h1 id="Linux学习笔记"><a href="#Linux学习笔记" class="headerlink" title="Linux学习笔记"></a>Linux学习笔记</h1><p>三种网络连接方式：</p>
-<pre><code>- 桥接模式：同一个网段建立连接，容易产生IP冲突
-- NAT模式：网络地址转换，生成虚拟的网络地址，通过代理地址访问外网
-- 主机模式：独立的系统，不与外界发生联系
-</code></pre>
-<p>安装vmtool，可以创建Windows和Linux共享文件夹</p>
-<h3 id="Linux的文件结构"><a href="#Linux的文件结构" class="headerlink" title="Linux的文件结构"></a>Linux的文件结构</h3><p>​		Linux中，一切皆是文件，Linux文件系统是采用级层式的树状目录结构，在此结构中的最上层是根目录”&#x2F;“，然后在此目录下再创建其他的目录。</p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/1.jpg"></p>
-<ul>
-<li><p>&#x2F;bin <em><strong>[常用]</strong></em> 是Binary的缩写,这个目录存放着最经常使用的命令</p>
-</li>
-<li><p>&#x2F;sbin s就是Super User的意思,这里存放的是系统管理员使用的系统管理程序</p>
-</li>
-<li><p>&#x2F;home <em><strong>[常用]</strong></em>  存放普通用户的主目录,在Linux中每个用户都有一个自己的目录,一般该目录名是以用户的账号命名</p>
-</li>
-<li><p>&#x2F;root <em><strong>[常用]</strong></em> 该目录为系统管理员,也称作超级权限者的用户主目录</p>
-</li>
-<li><p>&#x2F;lib 系统开机所需要最基本的动态连接共享池,其作用类似于windows里的DLL文件,几乎所有的应用程序都需要用到这些共享库</p>
-</li>
-<li><p>&#x2F;lost+found 一般为空,当系统非法关机后,这里就存放了一些文件</p>
-</li>
-<li><p>&#x2F;etc <em><strong>[常用]</strong></em> 所有的系统管理所需要的配置文件和子目录 ,比如安装mysql数据库 my.conf</p>
-</li>
-<li><p>&#x2F;usr <em><strong>[常用]</strong></em> 十分重要的目录,用户的很多应用程序和文件都放在这个目录下,类似与windows下的program files目录</p>
-</li>
-<li><p>&#x2F;boot <em><strong>[常用]</strong></em> 存放的是启动Linux时使用的一些核心文件,包括一些连接文件以及镜像文件</p>
-</li>
-<li><p>&#x2F;prov <em><strong>[不能动]</strong></em> 这个目录是一个虚拟的目录,它是系统内存的映射,访问这个目录来获取系统信息</p>
-</li>
-<li><p>&#x2F;srv <em><strong>[不能动]</strong></em> service的缩写,该目录存放一些服务启动之后需要提取的数据</p>
-</li>
-<li><p>&#x2F;sys <em><strong>[不能动]</strong></em> 这是Linux2.6内核的一个很大的变化,该目录下安装了2.6内核中新出现的一个文件系统sysfs</p>
-</li>
-<li><p>&#x2F;tmp 这个目录是用来存放一些临时文件的</p>
-</li>
-<li><p>&#x2F;dev 类似于windows的设备管理器,把所有的硬件用文件的形式存储</p>
-</li>
-<li><p>&#x2F;media <em><strong>[常用]</strong></em> Linux系统会自动识别一些设备,例如U盘,光驱等等,当识别后,Linux会把识别的设备挂载到这个目录下</p>
-</li>
-<li><p>&#x2F;mnt <em><strong>[常用]</strong></em> 系统提供该目录是为了让用户临时挂载别的文件系统的,我们可以将外部的存储挂载在&#x2F;mnt上,然后进入该目录就可以查看里的内容了</p>
-</li>
-<li><p>&#x2F;opt 这是给主机额外安装软件所摆放的目录.如安装ORACLE数据库就可以放到该目录下.默认为空</p>
-</li>
-<li><p>&#x2F;usr&#x2F;local <em><strong>[常用]</strong></em> 这是另一个给主机额外安装软件所安装的目录,一般是通过编译源码方式安装的程序</p>
-</li>
-<li><p>&#x2F;var <em><strong>[常用]</strong></em> 这个目录中存放着在不断扩充着的东西,习惯将经常被修改的目录放在这个目录下.包括各种日志文件</p>
-</li>
-<li><p>&#x2F;selinux <em><strong>[security-enhanced linux]</strong></em> SELinux是一种安全子系统,它能控制程序只能访问特定文件,有三种工作模式,可以自行设置.</p>
-</li>
-</ul>
-<h2 id="Linux远程登录"><a href="#Linux远程登录" class="headerlink" title="Linux远程登录"></a>Linux远程登录</h2><p>两个常用工具：Xshell(远程登录)、Xftp(远程文件传输)</p>
-<h2 id="Linux-Vi和Vim"><a href="#Linux-Vi和Vim" class="headerlink" title="Linux_Vi和Vim"></a>Linux_Vi和Vim</h2><p>三种模式</p>
-<ul>
-<li>正常模式，即默认的模式</li>
-<li>插入模式，按下i,I,o,O,a,A,r,R等任何一个字母即可进入编辑模式</li>
-<li>命令行模式 输入esc ,再输入: 即可进入 ,提供相关指令,完成读取,存盘,替换,离开vim,显示行号等的动作</li>
-</ul>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/2.png" alt="2"></p>
-<p>常用的快捷键</p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/3.png" alt="3"></p>
-<p>对应的键盘图</p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/4.png" alt="4"></p>
-<h2 id="Linux开机、重启、用户登录注销"><a href="#Linux开机、重启、用户登录注销" class="headerlink" title="Linux开机、重启、用户登录注销"></a>Linux开机、重启、用户登录注销</h2><p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/6.png" alt="6"><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/5.png" alt="5"></p>
-<h2 id="Linux用户管理"><a href="#Linux用户管理" class="headerlink" title="Linux用户管理"></a>Linux用户管理</h2><p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/7.png" alt="7"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/8.png" alt="8"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/9.png" alt="9"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/10.png" alt="10"></p>
-<p>查询当前用户信息 who am I</p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/11.png" alt="11"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/12.png" alt="12"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/13.png" alt="13"></p>
-<h2 id="Linux使用指令"><a href="#Linux使用指令" class="headerlink" title="Linux使用指令"></a>Linux使用指令</h2><pre><code>### Linux运行级别
-</code></pre>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/14.png" alt="14"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/15.png" alt="15"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/16.png" alt="16"></p>
-<h2 id="Linux文件目录指令"><a href="#Linux文件目录指令" class="headerlink" title="Linux文件目录指令"></a>Linux文件目录指令</h2><p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/17.png" alt="17"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/18.png" alt="18"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/19.png" alt="19"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/20.png" alt="20"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/21.png" alt="21"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/22.png" alt="22"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/23.png" alt="23"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/24.png" alt="24"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/25.png" alt="25"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/26.png" alt="26"></p>
-<p><img src="/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/27.png" alt="27"></p>
 ]]></content>
   </entry>
 </search>
