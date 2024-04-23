@@ -1,338 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>第一篇: 使用hexo+Github搭建个人博客系统</title>
-    <url>/2023/05/18/%E7%AC%AC%E4%B8%80%E7%AF%87%EF%BC%9A%E4%BD%BF%E7%94%A8hexo-Github%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E7%B3%BB%E7%BB%9F/</url>
-    <content><![CDATA[<h2 id="1-环境准备"><a href="#1-环境准备" class="headerlink" title="1.环境准备"></a>1.环境准备</h2><ul>
-<li><p>Github的注册和仓库的创建</p>
-</li>
-<li><p>Git的安装以及绑定Github</p>
-</li>
-<li><p>NodeJS和Hexo的安装</p>
-</li>
-<li><p>切换主题</p>
-</li>
-</ul>
-]]></content>
-  </entry>
-  <entry>
-    <title>第三篇: 大数据集群的配置</title>
-    <url>/2023/05/20/%E7%AC%AC%E4%B8%89%E7%AF%87-%E5%A4%A7%E6%95%B0%E6%8D%AE%E9%9B%86%E7%BE%A4%E7%9A%84%E9%85%8D%E7%BD%AE/</url>
-    <content><![CDATA[<h2 id="一、虚拟机的设置"><a href="#一、虚拟机的设置" class="headerlink" title="一、虚拟机的设置"></a>一、虚拟机的设置</h2><p>​	这里我采用的是使用虚拟机构建大数据集群，如果有钱也可以采用云平台进行大数据集群的构建。</p>
-<p>​	 在VMware的虚拟网络编辑器中，将VMnet8虚拟网卡的：</p>
-<p>​		网段设置为192.168.88.0</p>
-<p>​		网关设置为：192.168.88.2</p>
-<p>​	下载CentOs7.6的镜像文件，然后创建新的虚拟机，选择标准安装，全自动化安装。等待安装完成以后，再进行克隆，克隆完整的系统，这里克隆三个，分别命名为node1、node2、node3，设置node1的内存为4GB、node2和node3的内存为2GB。</p>
-<p>​	然后打开node1，修改主机名，并修改固定IP为：192.168.88.101，node2和node3分别为102和103</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 修改主机名</span></span><br><span class="line">hostnamectl <span class="built_in">set</span>-hostname node1</span><br><span class="line"><span class="comment"># 修改IP地址</span></span><br><span class="line">vim /etc/sysconfig/network-scripts/ifcfg-ens33</span><br><span class="line">IPADDR=<span class="string">&quot;192.168.88.101&quot;</span></span><br><span class="line"><span class="comment"># 重启网卡</span></span><br><span class="line">systemctl restart network</span><br></pre></td></tr></table></figure>
-
-<p>在windows系统中修改hosts文件,新增以下内容</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.101</span> node1</span><br><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.102</span> node2</span><br><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.103</span> node3</span><br></pre></td></tr></table></figure>
-
-<p>在3台Linux的&#x2F;etc&#x2F;hosts中,新增以下内容:</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.101</span> node1</span><br><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.102</span> node2</span><br><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.103</span> node3</span><br></pre></td></tr></table></figure>
-
-<p>配置SSH免密登录(每台都要执行一遍)</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ssh-keygen -t rsa -b 4096</span><br><span class="line">ssh-copy-id node1</span><br><span class="line">ssh-copy-id node2</span><br><span class="line">ssh-copy-id node3</span><br></pre></td></tr></table></figure>
-
-<p>新增hadoop普通用户.然后重复上诉的SSH操作:</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 新增普通用户</span></span><br><span class="line">useradd hadoop</span><br><span class="line"><span class="comment"># 设置密码</span></span><br><span class="line">passwd hadoop</span><br><span class="line"><span class="comment"># 切换用户</span></span><br><span class="line">su - hadoop</span><br></pre></td></tr></table></figure>
-
-<p>下载JDK</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 新建文件夹存储jdk</span></span><br><span class="line">mkdir -p /export/server</span><br><span class="line"><span class="comment"># 解压文件</span></span><br><span class="line">tar -zxvf jdk-8u351-linux-x64.tar.gz -C /export/server</span><br><span class="line"><span class="comment"># 配置jdk的软链接</span></span><br><span class="line">ln -s /export/server/jdk1<span class="number">.8</span><span class="number">.0_351</span> jdk</span><br><span class="line"><span class="comment"># 配置环境变量(编辑/etc/profile文件)</span></span><br><span class="line">export JAVA_HOME=/export/server/jdk</span><br><span class="line">export PATH=$PATH:$JAVA_HOME/<span class="built_in">bin</span></span><br><span class="line"><span class="comment"># 生效环境变量</span></span><br><span class="line">source /etc/profile</span><br><span class="line"><span class="comment"># 配置java执行程序的软链接(先删除自带的java,再添加下载的)</span></span><br><span class="line">rm -f /usr/<span class="built_in">bin</span>/java</span><br><span class="line">ln -s /export/server/jdk/<span class="built_in">bin</span>/java /usr/<span class="built_in">bin</span>/java</span><br><span class="line"><span class="comment"># 验证</span></span><br><span class="line">java -version</span><br><span class="line">javac -version</span><br></pre></td></tr></table></figure>
-
-<p>为了防止防火墙干扰大数据的软件,将防火墙关闭</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 每一台都执行</span></span><br><span class="line">systemctl stop firewalld</span><br><span class="line">systemctl disable firewalld</span><br><span class="line"><span class="comment"># 关闭SELinux</span></span><br><span class="line">vim /etc/sysconfig/selinux</span><br><span class="line"><span class="comment"># 修改</span></span><br><span class="line">SELINUX=disabled</span><br></pre></td></tr></table></figure>
-
-<p>调整每个服务器的时区为中国东八区的时区(校验时间)</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 安装ntp软件</span></span><br><span class="line">yum install -y ntp</span><br><span class="line"><span class="comment"># 更新时区</span></span><br><span class="line">rm -f /etc/localtime</span><br><span class="line">sudo ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime</span><br><span class="line"><span class="comment"># 同步时间</span></span><br><span class="line">ntpdate -u ntp.aliyun.com</span><br><span class="line"><span class="comment"># 开启ntp服务并设置开机自启动</span></span><br><span class="line">systemctl start ntpd</span><br><span class="line">systemctl enable ntpd</span><br></pre></td></tr></table></figure>
-
-<h2 id="二、Hadoop的部署"><a href="#二、Hadoop的部署" class="headerlink" title="二、Hadoop的部署"></a>二、Hadoop的部署</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 上传文件到node1</span></span><br><span class="line"><span class="comment"># 解压</span></span><br><span class="line">tar -zxvf hadoop-<span class="number">3.3</span><span class="number">.4</span>.tar.gz -C /export/server</span><br><span class="line"><span class="comment"># 构建软链接</span></span><br><span class="line">ln -s /export/server/hadoop-<span class="number">3.3</span><span class="number">.4</span> hadoop</span><br><span class="line"><span class="comment"># 先cd /export/server/hadoop，然后再cd etc/hadoop</span></span><br><span class="line">vim workers</span><br><span class="line"><span class="comment"># 填入</span></span><br><span class="line">node1</span><br><span class="line">node2</span><br><span class="line">node3</span><br><span class="line"><span class="comment"># 然后配置hadoop-env.sh文件，同样使用vim hadoop-env.sh</span></span><br><span class="line">export JAVA_HOME=/export/server/jdk</span><br><span class="line">export HADOOP_HOME=/export/server/hadoop</span><br><span class="line">export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop</span><br><span class="line">export HADOOP_LOG_DIR=$HADOOP_HOME/logs</span><br><span class="line"><span class="comment"># 配置core-site.xml</span></span><br><span class="line">&lt;configuration&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;fs.defaultFS&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;hdfs://node1:<span class="number">8020</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;io.file.buffer.size&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">131072</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">&lt;/configuration&gt;</span><br><span class="line"><span class="comment"># 配置hdfs-site.xml</span></span><br><span class="line">&lt;configuration&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.datanode.data.<span class="built_in">dir</span>.perm&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">700</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.namenode.name.<span class="built_in">dir</span>&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;/data/nn&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.namenode.hosts&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;node1,node2,node3&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">&lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.blocksize&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">268435456</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.namenode.handler.count&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">100</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.datanode.data.<span class="built_in">dir</span>&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;/data/dn&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">&lt;/configuration&gt;</span><br><span class="line"><span class="comment"># node1节点</span></span><br><span class="line">mkdir -p /data/nn</span><br><span class="line">mkdir -p /data/dn</span><br><span class="line"><span class="comment"># node2和node3</span></span><br><span class="line">mkdir -p /data/dn</span><br><span class="line"><span class="comment"># 复制hadoop到node2和node3</span></span><br><span class="line">cd /export/server</span><br><span class="line">scp -r hadoop-<span class="number">3.3</span><span class="number">.4</span> node2:`pwd`/</span><br><span class="line">scp -r hadoop-<span class="number">3.3</span><span class="number">.4</span> node3:`pwd`/</span><br><span class="line"><span class="comment"># 在node2和node3分别建立软链接</span></span><br><span class="line">ln -s /export/server/hadoop-<span class="number">3.3</span><span class="number">.4</span> /export/server/hadoop</span><br><span class="line"><span class="comment"># 配置环境变量 vim /etc/profile (退回顶级目录执行)</span></span><br><span class="line">export HADOOP_HOME=/export/server/hadoop</span><br><span class="line">export PATH=$PATH:$HADOOP_HOME/<span class="built_in">bin</span>:$HADOOP_HOME/sbin</span><br><span class="line"><span class="comment"># source /etc/profile 生效环境变量</span></span><br><span class="line"><span class="comment"># 使用root身份,将权限给普通用户,三台服务器都要</span></span><br><span class="line">chown -R hadoop:hadoop /data</span><br><span class="line">chown -R hadoop:hadoop /export</span><br><span class="line"><span class="comment"># 格式化namenode</span></span><br><span class="line">su - hadoop <span class="comment"># 切换为hadoop普通用户</span></span><br><span class="line">hadoop namenode -<span class="built_in">format</span> <span class="comment"># 格式化</span></span><br><span class="line"><span class="comment"># 启动HDFS集群</span></span><br><span class="line">start-dfs.sh</span><br><span class="line"><span class="comment"># 关闭HDFS集群</span></span><br><span class="line">stop-dfs.sh</span><br></pre></td></tr></table></figure>
-
-]]></content>
-  </entry>
-  <entry>
-    <title>第二篇:ES6-ES11的新语法</title>
-    <url>/2023/05/18/%E7%AC%AC%E4%BA%8C%E7%AF%87%EF%BC%9AES6-ES11%E7%9A%84%E6%96%B0%E8%AF%AD%E6%B3%95/</url>
-    <content><![CDATA[<h2 id="1-ES6"><a href="#1-ES6" class="headerlink" title="1.ES6"></a>1.ES6</h2><p>1.let 和var的区别</p>
-<p>作用域不同,var是全局变量而let是根据为位置决定</p>
-<p>2.const定义常量,防止变量标识符的重新分配</p>
-<p>3.防止对象被改变:Object.freeze(obj)</p>
-<p>4.箭头函数代替function关键字:const myFun&#x3D;(attribute)&#x3D;&gt;{}</p>
-<p>设置默认参数const myFun&#x3D;(attribute&#x3D;value)&#x3D;&gt;{}</p>
-<p>5.rest操作符: …args等同于将args数组展开</p>
-<p>6.解构赋值:</p>
-<p>(1)对象的解构赋值:</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> user = &#123; <span class="attr">name</span>: <span class="string">&#x27;John Doe&#x27;</span>, <span class="attr">age</span>: <span class="number">34</span> &#125;;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> &#123; name, age &#125; = user;<span class="comment">//将user的name和age的值赋值给了name和age变量</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> &#123; <span class="attr">name</span>: userName, <span class="attr">age</span>: userAge &#125; = user;<span class="comment">//将user.name和user.age的值分配给了新变量</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> user = &#123;</span><br><span class="line">  <span class="attr">johnDoe</span>: &#123; </span><br><span class="line">    <span class="attr">age</span>: <span class="number">34</span>,</span><br><span class="line">    <span class="attr">email</span>: <span class="string">&#x27;johnDoe@freeCodeCamp.com&#x27;</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-
-<p>嵌套对象的解构赋值:</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> &#123; <span class="attr">johnDoe</span>: &#123; age, email &#125;&#125; = user;<span class="comment">//这是解构对象的属性值赋值给具有相同名字的变量：</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> &#123; <span class="attr">johnDoe</span>: &#123; <span class="attr">age</span>: userAge, <span class="attr">email</span>: userEmail &#125;&#125; = user;<span class="comment">//这是将对象的属性值赋值给具有不同名字的变量：</span></span><br></pre></td></tr></table></figure>
-
-<p>(2)数组的解构赋值:</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> [a, b] = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>];</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> [a, b,,, c] = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>];</span><br></pre></td></tr></table></figure>
-
-<p>例:交换变量的值:let a&#x3D;10;      let b&#x3D;20;     [a,b]&#x3D;[b,a];</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> [a, b, ...arr] = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">7</span>];</span><br></pre></td></tr></table></figure>
-
-<p>arr就是新的数组[3,4,5,7];</p>
-<p>(3)模板字面量:</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> person = &#123;</span><br><span class="line">  <span class="attr">name</span>: <span class="string">&quot;Zodiac Hasbro&quot;</span>,</span><br><span class="line">  <span class="attr">age</span>: <span class="number">56</span></span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">const</span> greeting = <span class="string">`Hello, my name is <span class="subst">$&#123;person.name&#125;</span>!</span></span><br><span class="line"><span class="string">I am <span class="subst">$&#123;person.age&#125;</span> years old.`</span>;<span class="comment">//占位符$&#123;&#125;</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">const getMousePosition = (x, y) =&gt; (&#123;</span><br><span class="line">  x: x,</span><br><span class="line">  y: y</span><br><span class="line">&#125;);//等同于</span><br><span class="line">const getMousePosition = (x, y) =&gt; (&#123; x, y &#125;);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> person = &#123;</span><br><span class="line">  <span class="attr">name</span>: <span class="string">&quot;Taylor&quot;</span>,</span><br><span class="line">  <span class="attr">sayHello</span>: <span class="keyword">function</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">`Hello! My name is <span class="subst">$&#123;<span class="variable language_">this</span>.name&#125;</span>.`</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> person = &#123;</span><br><span class="line">  <span class="attr">name</span>: <span class="string">&quot;Taylor&quot;</span>,</span><br><span class="line">  <span class="title function_">sayHello</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">`Hello! My name is <span class="subst">$&#123;<span class="variable language_">this</span>.name&#125;</span>.`</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;<span class="comment">//简洁的函数声明</span></span><br></pre></td></tr></table></figure>
-
-<p>构造函数:</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">var</span> <span class="title class_">SpaceShuttle</span> = <span class="keyword">function</span>(<span class="params">targetPlanet</span>)&#123;</span><br><span class="line">  <span class="variable language_">this</span>.<span class="property">targetPlanet</span> = targetPlanet;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">SpaceShuttle</span> &#123;</span><br><span class="line">  <span class="title function_">constructor</span>(<span class="params">targetPlanet</span>) &#123;</span><br><span class="line">    <span class="variable language_">this</span>.<span class="property">targetPlanet</span> = targetPlanet;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Book</span> &#123;</span><br><span class="line">  <span class="title function_">constructor</span>(<span class="params">author</span>) &#123;</span><br><span class="line">    <span class="variable language_">this</span>.<span class="property">_author</span> = author;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// getter 定义时的赋值</span></span><br><span class="line">  <span class="keyword">get</span> <span class="title function_">writer</span>() &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="variable language_">this</span>.<span class="property">_author</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// setter 改变writer属性值的时候</span></span><br><span class="line">  <span class="keyword">set</span> <span class="title function_">writer</span>(<span class="params">updatedAuthor</span>) &#123;</span><br><span class="line">    <span class="variable language_">this</span>.<span class="property">_author</span> = updatedAuthor;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">const</span> novel = <span class="keyword">new</span> <span class="title class_">Book</span>(<span class="string">&#x27;anonymous&#x27;</span>);</span><br><span class="line"><span class="variable language_">console</span>.<span class="title function_">log</span>(novel.<span class="property">writer</span>);</span><br><span class="line">novel.<span class="property">writer</span> = <span class="string">&#x27;newAuthor&#x27;</span>;</span><br><span class="line"><span class="variable language_">console</span>.<span class="title function_">log</span>(novel.<span class="property">writer</span>);</span><br></pre></td></tr></table></figure>
-
-<p>7.导入模块js文件:</p>
-<figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">script</span> <span class="attr">type</span>=<span class="string">&quot;module&quot;</span> <span class="attr">src</span>=<span class="string">&quot;filename.js&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>export导出js的模块:</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="keyword">const</span> <span class="title function_">add</span> = (<span class="params">x, y</span>) =&gt; &#123;</span><br><span class="line">  <span class="keyword">return</span> x + y;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> <span class="title function_">add</span> = (<span class="params">x, y</span>) =&gt; &#123;</span><br><span class="line">  <span class="keyword">return</span> x + y;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">export</span> &#123; add &#125;;<span class="comment">//可以一次导出多个变量或函数</span></span><br></pre></td></tr></table></figure>
-
-<p>import导入js模块:</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> &#123; add, subtract &#125; <span class="keyword">from</span> <span class="string">&#x27;./math_functions.js&#x27;</span>; </span><br></pre></td></tr></table></figure>
-
-<p>全部导入:</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> * <span class="keyword">as</span> myMathModule <span class="keyword">from</span> <span class="string">&quot;./math_functions.js&quot;</span>;</span><br></pre></td></tr></table></figure>
-
-<p>上面的 <code>import</code> 语句会创建一个叫作 <code>myMathModule</code> 的对象。 这只是一个变量名，可以随便命名。 对象包含 <code>math_functions.js</code> 文件里的所有导出，可以像访问对象的属性那样访问里面的函数。 下面是使用导入的 <code>add</code> 和 <code>subtract</code> 函数的例子：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">myMathModule.<span class="title function_">add</span>(<span class="number">2</span>,<span class="number">3</span>);</span><br><span class="line">myMathModule.<span class="title function_">subtract</span>(<span class="number">5</span>,<span class="number">3</span>);</span><br></pre></td></tr></table></figure>
-
-<p>还需要了解另外一种被称为默认导出的 <code>export</code> 的语法。 在文件中只有一个值需要导出的时候，通常会使用这种语法。 它也常常用于给文件或者模块创建返回值。</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> <span class="keyword">function</span> <span class="title function_">add</span>(<span class="params">x, y</span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> x + y;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> <span class="keyword">function</span>(<span class="params">x, y</span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> x + y;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>第一个是命名函数，第二个是匿名函数。</p>
-<p><code>export default</code> 用于为模块或文件声明一个返回值，在每个文件或者模块中应当只默认导出一个值。 此外，你不能将 <code>export default</code> 与 <code>var</code>、<code>let</code> 或 <code>const</code> 同时使用。</p>
-<p> 还需要一种 <code>import</code> 的语法来导入默认的导出。 在下面的例子里，<code>add</code> 是 <code>math_functions.js</code> 文件的默认导出。 以下是如何导入它：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> add <span class="keyword">from</span> <span class="string">&quot;./math_functions.js&quot;</span>;</span><br></pre></td></tr></table></figure>
-
-<p>这个语法有一处特别的地方， 被导入的 <code>add</code> 值没有被花括号（<code>&#123;&#125;</code>）所包围。 <code>add</code> 只是一个变量的名字，对应 <code>math_functions.js</code> 文件的任何默认导出值。 在导入默认导出时，可以使用任何名字。</p>
-<p>8.Promise:</p>
-<p>Promise 是异步编程的一种解决方案 - 它在未来的某时会生成一个值。 任务完成，分执行成功和执行失败两种情况。 <code>Promise</code> 是构造器函数，需要通过 <code>new</code> 关键字来创建。 构造器参数是一个函数，该函数有两个参数 - <code>resolve</code> 和 <code>reject</code>。 通过它们来判断 promise 的执行结果。 用法如下：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> myPromise = <span class="keyword">new</span> <span class="title class_">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line"></span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
-
-<p>​											<strong>通过 resolve 和 reject 完成 Promise</strong></p>
-<p>Promise 有三个状态：<code>pending</code>、<code>fulfilled</code> 和 <code>rejected</code>。 上一个挑战里创建的 promise 一直阻塞在 <code>pending</code> 状态里，因为没有调用 promise 的完成方法。 Promise 提供的 <code>resolve</code> 和 <code>reject</code> 参数就是用来结束 promise 的。 Promise 成功时调用 <code>resolve</code>，promise 执行失败时调用 <code>reject</code>， 如下文所述，这些方法需要有一个参数。</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> myPromise = <span class="keyword">new</span> <span class="title class_">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">if</span>(condition here) &#123;</span><br><span class="line">    <span class="title function_">resolve</span>(<span class="string">&quot;Promise was fulfilled&quot;</span>);</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="title function_">reject</span>(<span class="string">&quot;Promise was rejected&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
-
-<p>上面的示例使用字符串作为这些函数的参数，但参数实际上可以是任何格式。 通常，它可能是一个包含数据的对象，你可以将它放在网站或其他地方。</p>
-<p>​												<strong>用 then 处理 Promise 完成的情况</strong></p>
-<p>当程序需要花费未知的时间才能完成时（比如一些异步操作），一般是服务器请求，promise 很有用。 服务器请求会花费一些时间，当结束时，需要根据服务器的响应执行一些操作。 这可以用 <code>then</code> 方法来实现， 当 promise 完成 <code>resolve</code> 时会触发 <code>then</code> 方法。 例子如下：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">myPromise.<span class="title function_">then</span>(<span class="function"><span class="params">result</span> =&gt;</span> &#123;</span><br><span class="line"></span><br><span class="line">&#125;);<span class="comment">//result 即传入 resolve 方法的参数</span></span><br></pre></td></tr></table></figure>
-
-<p>​											<strong>使用 catch 处理 Promise 失败的情况</strong></p>
-<p>当 promise 失败时会调用 <code>catch</code> 方法。 当 promise 的 <code>reject</code> 方法执行时会直接调用。 用法如下：</p>
-<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">myPromise.<span class="title function_">catch</span>(<span class="function"><span class="params">error</span> =&gt;</span> &#123;</span><br><span class="line"></span><br><span class="line">&#125;);<span class="comment">//error 是传入 reject 方法的参数。</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="2-ES7"><a href="#2-ES7" class="headerlink" title="2.ES7"></a>2.ES7</h2><p>includes:数组方法,判断是否数组含有某元素,返回布尔值</p>
-<p>**:表示幂运算的运算符</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> books=[<span class="string">&quot;tom&quot;</span>,<span class="string">&quot;sakura&quot;</span>];</span><br><span class="line"><span class="variable language_">console</span>.<span class="title function_">log</span>(books.<span class="title function_">includes</span>(<span class="string">&quot;tom&quot;</span>));</span><br><span class="line"><span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="number">2</span>**<span class="number">10</span>);</span><br></pre></td></tr></table></figure>
-
-<p>async和await:</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//async函数返回值为promise对象</span></span><br><span class="line"><span class="comment">//promise对象的结果由async函数执行的返回值决定</span></span><br><span class="line"><span class="keyword">function</span> <span class="title function_">getData</span>(<span class="params">url</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">Promise</span>(<span class="function">(<span class="params">resolved, reject</span>) =&gt;</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> xhr = <span class="keyword">new</span> <span class="title class_">XMLHttpRequest</span>();</span><br><span class="line">        xhr.<span class="title function_">open</span>(<span class="string">&quot;GET&quot;</span>, url);</span><br><span class="line">        xhr.<span class="title function_">send</span>();</span><br><span class="line">        xhr.<span class="property">onreadystatechange</span> = <span class="function">() =&gt;</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (xhr.<span class="property">readyState</span> === <span class="number">4</span>) &#123;</span><br><span class="line">                <span class="keyword">if</span> (xhr.<span class="property">status</span> &gt;= <span class="number">200</span> &amp;&amp; xhr.<span class="property">status</span> &lt; <span class="number">300</span>) &#123;</span><br><span class="line">                    <span class="title function_">resolved</span>(xhr.<span class="property">response</span>);</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    <span class="title function_">reject</span>(xhr.<span class="property">status</span>);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">async</span> <span class="keyword">function</span> <span class="title function_">get</span>(<span class="params"></span>)&#123;</span><br><span class="line">    <span class="keyword">let</span> result=<span class="title function_">getData</span>(<span class="string">&quot;http:///localhost:8000&quot;</span>);</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(result);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="3-ES8-对象方法的扩展"><a href="#3-ES8-对象方法的扩展" class="headerlink" title="3.ES8 对象方法的扩展:"></a>3.ES8 对象方法的扩展:</h2><figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//Object.keys(obj) 获取对象的键</span></span><br><span class="line"><span class="comment">//Object.values(obj) 获取对象的值</span></span><br><span class="line"><span class="comment">//Object.entries(obj) 获取对象的二维数组形式</span></span><br><span class="line"><span class="comment">//Object.getOwnPropertyDescriptors(obj) 获取对象的描述对象</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="4-ES9-正则扩展"><a href="#4-ES9-正则扩展" class="headerlink" title="4.ES9 正则扩展:"></a>4.ES9 正则扩展:</h2><figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//命名捕获分组</span></span><br><span class="line"><span class="keyword">let</span> str=<span class="string">&quot;&lt;a href=&#x27;http:www.baidu.com&#x27;&gt;&lt;/a&gt;&quot;</span>;</span><br><span class="line"><span class="keyword">const</span> reg=<span class="regexp">/&lt;a href=&quot;(.*)&quot;&gt;(.*)&lt;\/a&gt;/</span>;</span><br><span class="line"><span class="keyword">const</span> result=reg.<span class="title function_">exec</span>(str);</span><br><span class="line"><span class="variable language_">console</span>.<span class="title function_">log</span>(result[<span class="number">1</span>]);</span><br><span class="line"><span class="keyword">const</span> reg1=<span class="regexp">/&lt;a href=&quot;(?&lt;url&gt;.*)&quot;&gt;(?&lt;text&gt;.*)&lt;\/a&gt;/</span>;</span><br><span class="line"><span class="keyword">const</span> result1=reg1.<span class="title function_">exec</span>(str);</span><br><span class="line"><span class="variable language_">console</span>.<span class="title function_">log</span>(result.<span class="property">groups</span>.<span class="property">name</span>);</span><br><span class="line"><span class="comment">//反向断言 (?&lt;=啊)</span></span><br><span class="line"><span class="comment">//dotAll 新增s修饰符 写在//s</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="5-ES10"><a href="#5-ES10" class="headerlink" title="5.ES10:"></a>5.ES10:</h2><figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//Object.fromEntries() 利用传入的二维数组创建一个对象</span></span><br><span class="line"><span class="comment">//flat和flatMap 将数组降维 flat接收数字参数决定降的维度 flatMap将map和flat结合</span></span><br><span class="line"><span class="comment">//Symbol.prototype.description</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="6-ES11"><a href="#6-ES11" class="headerlink" title="6.ES11:"></a>6.ES11:</h2><figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//私有属性</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Person</span>&#123;</span><br><span class="line">    name;</span><br><span class="line">    #age;<span class="comment">//私有属性,以#开头</span></span><br><span class="line">    <span class="title function_">constructor</span>(<span class="params">name,age</span>)&#123;</span><br><span class="line">        <span class="variable language_">this</span>.<span class="property">name</span>=name;</span><br><span class="line">        <span class="variable language_">this</span>.#age=age;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//Promise.allSettled([]) 接收数组 每个元素是个Promise对象 始终成功</span></span><br><span class="line"><span class="comment">//Promise.all([]) 接收参数一样 状态取决于参数是否都成功 否则失败</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//String.prototype.matchAll 返回一个可迭代的对象</span></span><br><span class="line"><span class="keyword">let</span> str = <span class="string">`</span></span><br><span class="line"><span class="string">    &lt;ul&gt;</span></span><br><span class="line"><span class="string">        &lt;li&gt;</span></span><br><span class="line"><span class="string">            &lt;a&gt;你好&lt;/a&gt;</span></span><br><span class="line"><span class="string">            &lt;p&gt;世界&lt;/p&gt;</span></span><br><span class="line"><span class="string">        &lt;/li&gt;   </span></span><br><span class="line"><span class="string">        &lt;li&gt;</span></span><br><span class="line"><span class="string">            &lt;a&gt;Hello World&lt;/a&gt;</span></span><br><span class="line"><span class="string">            &lt;p&gt;sakura&lt;/p&gt;</span></span><br><span class="line"><span class="string">        &lt;/li&gt;  </span></span><br><span class="line"><span class="string">    &lt;/ul&gt;</span></span><br><span class="line"><span class="string">`</span>;</span><br><span class="line">      <span class="keyword">const</span> reg = <span class="regexp">/&lt;li&gt;.*?&lt;a&gt;(.*?)&lt;\/a&gt;.*?&lt;p&gt;(.*?)&lt;\/p&gt;/g</span>s;</span><br><span class="line">      <span class="keyword">const</span> result = str.<span class="title function_">exec</span>(reg);</span><br><span class="line">      <span class="keyword">for</span> (<span class="keyword">let</span> v <span class="keyword">of</span> result) &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(v);</span><br><span class="line">      &#125;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//可选链操作符 ?. 在使用对象的属性之前判断对象是否存在</span></span><br><span class="line"><span class="comment">//动态import	import(&quot;&quot;).then(module=&gt;&#123;module.method()&#125;);</span></span><br></pre></td></tr></table></figure>
-
-<p>BigInt类型:大整形</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//大数值的运算</span></span><br><span class="line"><span class="keyword">let</span> n=<span class="number">123</span>;</span><br><span class="line"><span class="keyword">let</span> m=<span class="title class_">BigInt</span>(n); </span><br></pre></td></tr></table></figure>
-
-<p>globalThis:始终指向全局对象</p>
-]]></content>
-  </entry>
-  <entry>
-    <title>第四章:Linux学习基础篇</title>
-    <url>/2023/07/13/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/</url>
-    <content><![CDATA[<h1 id="Linux学习笔记"><a href="#Linux学习笔记" class="headerlink" title="Linux学习笔记"></a>Linux学习笔记</h1><p>三种网络连接方式：</p>
-<pre><code>- 桥接模式：同一个网段建立连接，容易产生IP冲突
-- NAT模式：网络地址转换，生成虚拟的网络地址，通过代理地址访问外网
-- 主机模式：独立的系统，不与外界发生联系
-</code></pre>
-<p>安装vmtool，可以创建Windows和Linux共享文件夹</p>
-<h3 id="Linux的文件结构"><a href="#Linux的文件结构" class="headerlink" title="Linux的文件结构"></a>Linux的文件结构</h3><p>​		Linux中，一切皆是文件，Linux文件系统是采用级层式的树状目录结构，在此结构中的最上层是根目录”&#x2F;“，然后在此目录下再创建其他的目录。</p>
-<p><img src="https://img1.imgtp.com/2023/06/08/COzrs7Ji.jpg"></p>
-<ul>
-<li><p>&#x2F;bin <em><strong>[常用]</strong></em> 是Binary的缩写,这个目录存放着最经常使用的命令</p>
-</li>
-<li><p>&#x2F;sbin s就是Super User的意思,这里存放的是系统管理员使用的系统管理程序</p>
-</li>
-<li><p>&#x2F;home <em><strong>[常用]</strong></em>  存放普通用户的主目录,在Linux中每个用户都有一个自己的目录,一般该目录名是以用户的账号命名</p>
-</li>
-<li><p>&#x2F;root <em><strong>[常用]</strong></em> 该目录为系统管理员,也称作超级权限者的用户主目录</p>
-</li>
-<li><p>&#x2F;lib 系统开机所需要最基本的动态连接共享池,其作用类似于windows里的DLL文件,几乎所有的应用程序都需要用到这些共享库</p>
-</li>
-<li><p>&#x2F;lost+found 一般为空,当系统非法关机后,这里就存放了一些文件</p>
-</li>
-<li><p>&#x2F;etc <em><strong>[常用]</strong></em> 所有的系统管理所需要的配置文件和子目录 ,比如安装mysql数据库 my.conf</p>
-</li>
-<li><p>&#x2F;usr <em><strong>[常用]</strong></em> 十分重要的目录,用户的很多应用程序和文件都放在这个目录下,类似与windows下的program files目录</p>
-</li>
-<li><p>&#x2F;boot <em><strong>[常用]</strong></em> 存放的是启动Linux时使用的一些核心文件,包括一些连接文件以及镜像文件</p>
-</li>
-<li><p>&#x2F;prov <em><strong>[不能动]</strong></em> 这个目录是一个虚拟的目录,它是系统内存的映射,访问这个目录来获取系统信息</p>
-</li>
-<li><p>&#x2F;srv <em><strong>[不能动]</strong></em> service的缩写,该目录存放一些服务启动之后需要提取的数据</p>
-</li>
-<li><p>&#x2F;sys <em><strong>[不能动]</strong></em> 这是Linux2.6内核的一个很大的变化,该目录下安装了2.6内核中新出现的一个文件系统sysfs</p>
-</li>
-<li><p>&#x2F;tmp 这个目录是用来存放一些临时文件的</p>
-</li>
-<li><p>&#x2F;dev 类似于windows的设备管理器,把所有的硬件用文件的形式存储</p>
-</li>
-<li><p>&#x2F;media <em><strong>[常用]</strong></em> Linux系统会自动识别一些设备,例如U盘,光驱等等,当识别后,Linux会把识别的设备挂载到这个目录下</p>
-</li>
-<li><p>&#x2F;mnt <em><strong>[常用]</strong></em> 系统提供该目录是为了让用户临时挂载别的文件系统的,我们可以将外部的存储挂载在&#x2F;mnt上,然后进入该目录就可以查看里的内容了</p>
-</li>
-<li><p>&#x2F;opt 这是给主机额外安装软件所摆放的目录.如安装ORACLE数据库就可以放到该目录下.默认为空</p>
-</li>
-<li><p>&#x2F;usr&#x2F;local <em><strong>[常用]</strong></em> 这是另一个给主机额外安装软件所安装的目录,一般是通过编译源码方式安装的程序</p>
-</li>
-<li><p>&#x2F;var <em><strong>[常用]</strong></em> 这个目录中存放着在不断扩充着的东西,习惯将经常被修改的目录放在这个目录下.包括各种日志文件</p>
-</li>
-<li><p>&#x2F;selinux <em><strong>[security-enhanced linux]</strong></em> SELinux是一种安全子系统,它能控制程序只能访问特定文件,有三种工作模式,可以自行设置.</p>
-</li>
-</ul>
-<h2 id="Linux远程登录"><a href="#Linux远程登录" class="headerlink" title="Linux远程登录"></a>Linux远程登录</h2><p>两个常用工具：Xshell(远程登录)、Xftp(远程文件传输)</p>
-<h2 id="Linux-Vi和Vim"><a href="#Linux-Vi和Vim" class="headerlink" title="Linux_Vi和Vim"></a>Linux_Vi和Vim</h2><p>三种模式</p>
-<ul>
-<li>正常模式，即默认的模式</li>
-<li>插入模式，按下i,I,o,O,a,A,r,R等任何一个字母即可进入编辑模式</li>
-<li>命令行模式 输入esc ,再输入: 即可进入 ,提供相关指令,完成读取,存盘,替换,离开vim,显示行号等的动作</li>
-</ul>
-<p><img src="https://img1.imgtp.com/2023/09/17/GcbZTD5M.png"></p>
-<p>常用的快捷键</p>
-<p><img src="https://img1.imgtp.com/2023/09/17/nBXVztZn.png"></p>
-<p>对应的键盘图</p>
-<p><img src="https://img1.imgtp.com/2023/09/17/p09Ml2Z8.png"></p>
-<h2 id="Linux开机、重启、用户登录注销"><a href="#Linux开机、重启、用户登录注销" class="headerlink" title="Linux开机、重启、用户登录注销"></a>Linux开机、重启、用户登录注销</h2><p><img src="https://img1.imgtp.com/2023/09/17/QTALVgkn.png"><img src="https://img1.imgtp.com/2023/09/17/2mohFa6g.png"></p>
-<h2 id="Linux用户管理"><a href="#Linux用户管理" class="headerlink" title="Linux用户管理"></a>Linux用户管理</h2><p><img src="https://img1.imgtp.com/2023/09/17/NYwvsOAp.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/2Z1QV8YA.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/WG42hTvs.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/iNfA8QKR.png"></p>
-<p>查询当前用户信息 who am I</p>
-<p><img src="https://img1.imgtp.com/2023/09/17/wdk45Yxg.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/wiCTQgjD.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/9qWKA5Pq.png"></p>
-<h2 id="Linux使用指令"><a href="#Linux使用指令" class="headerlink" title="Linux使用指令"></a>Linux使用指令</h2><h3 id="Linux运行级别"><a href="#Linux运行级别" class="headerlink" title="Linux运行级别"></a>Linux运行级别</h3><p><img src="https://img1.imgtp.com/2023/09/17/8IkrYi2V.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/EGzWGgVl.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/uEXUgWGZ.png"></p>
-<h2 id="Linux文件目录指令"><a href="#Linux文件目录指令" class="headerlink" title="Linux文件目录指令"></a>Linux文件目录指令</h2><p><img src="https://img1.imgtp.com/2023/09/17/QIenEvmv.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/WTnDeZME.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/hJw2CLJe.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/rtC5e2LJ.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/zdQ5gYHo.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/lbSKLV26.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/IMo3FOIw.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/TD7bRUY8.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/tHWLRUtB.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/jsMm0GK3.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/UL42zJlc.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/e5i0emkP.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/bNx1NWJm.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/TQkJ0y3I.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/8TdC2z8g.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/c91BNMHU.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/VQTqJnyw.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/qMO6H0EX.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/zWPjP7tN.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/duvlhb6V.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/DT8XeVQu.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/epuSOSt9.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/r83AwZHg.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/LOiTsWZ9.png"></p>
-<h2 id="Linux组"><a href="#Linux组" class="headerlink" title="Linux组"></a>Linux组</h2><p>Linux中，每个用户都有组，文件有三个概念（所有者、所在组、其它组）</p>
-<p><img src="https://img1.imgtp.com/2023/09/17/uD51heYt.png" alt="41"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/VPPO39VZ.png" alt="42"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/sEMZ3wdL.png" alt="43"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/b9KScCMn.png" alt="44"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/M9iH53tj.png" alt="45"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/OqfhVa5L.png" alt="46"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/IxpeceiG.png" alt="47"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/r6noTr5Y.png" alt="48"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/ygRpaL5U.png" alt="49"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/ztm2KwSr.png" alt="50"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/fEoXB19W.png" alt="51"></p>
-<h2 id="定时任务调度"><a href="#定时任务调度" class="headerlink" title="定时任务调度"></a>定时任务调度</h2><p><img src="https://img1.imgtp.com/2023/09/17/vbwenR4e.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/tYA4r8Aw.png" alt="53"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/eKeHrvTT.png" alt="54"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/00KUXaUK.png" alt="55"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/tR05rHR4.png" alt="57"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/FobWB1Li.png" alt="58"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/isY3cVKU.png" alt="59"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/Uf2sXih5.png" alt="60"></p>
-<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\61.png" alt="61"></p>
-<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\62.png" alt="62"></p>
-<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\63.png" alt="63"></p>
-<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\64.png" alt="64"></p>
-<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\65.png" alt="65"></p>
-<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\66.png" alt="66"></p>
-<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\67.png" alt="67"></p>
-<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\68.png" alt="68"></p>
-<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\69.png" alt="69"></p>
-<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\70.png" alt="70"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/WVCRQgxx.png" alt="https://img1.imgtp.com/2023/09/17/WVCRQgxx.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/MV0qnvTN.png" alt="https://img1.imgtp.com/2023/09/17/MV0qnvTN.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/9HQS1wts.png" alt="https://img1.imgtp.com/2023/09/17/9HQS1wts.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/xky1TwC6.png" alt="https://img1.imgtp.com/2023/09/17/xky1TwC6.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/aBUwGeEj.png" alt="https://img1.imgtp.com/2023/09/17/aBUwGeEj.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/TWC9DAjH.png" alt="https://img1.imgtp.com/2023/09/17/TWC9DAjH.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/DiqGQyIH.png" alt="https://img1.imgtp.com/2023/09/17/DiqGQyIH.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/4RwfaMmN.png" alt="https://img1.imgtp.com/2023/09/17/4RwfaMmN.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/k315ZK6T.png" alt="https://img1.imgtp.com/2023/09/17/k315ZK6T.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/bdJ2rgOY.png" alt="https://img1.imgtp.com/2023/09/17/bdJ2rgOY.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/ajycZ3b8.png" alt="https://img1.imgtp.com/2023/09/17/ajycZ3b8.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/zg8zSxE5.png" alt="https://img1.imgtp.com/2023/09/17/zg8zSxE5.png"></p>
-<h2 id="Linux服务管理"><a href="#Linux服务管理" class="headerlink" title="Linux服务管理"></a>Linux服务管理</h2><p><img src="https://img1.imgtp.com/2023/09/17/Ofn7JZ5U.png" alt="https://img1.imgtp.com/2023/09/17/Ofn7JZ5U.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/dlrLIgrn.png" alt="https://img1.imgtp.com/2023/09/17/dlrLIgrn.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/5YUm7NhH.png" alt="https://img1.imgtp.com/2023/09/17/5YUm7NhH.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/068T0EXV.png" alt="https://img1.imgtp.com/2023/09/17/068T0EXV.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/aXdbnSDi.png" alt="https://img1.imgtp.com/2023/09/17/aXdbnSDi.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/3gmzdCoi.png" alt="https://img1.imgtp.com/2023/09/17/3gmzdCoi.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/1EDJ6DJ9.png" alt="https://img1.imgtp.com/2023/09/17/1EDJ6DJ9.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/4lOiKiut.png" alt="https://img1.imgtp.com/2023/09/17/4lOiKiut.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/By8Z0Za8.png" alt="https://img1.imgtp.com/2023/09/17/By8Z0Za8.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/dvTRVqbT.png" alt="https://img1.imgtp.com/2023/09/17/dvTRVqbT.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/x0uw4zaX.png" alt="https://img1.imgtp.com/2023/09/17/x0uw4zaX.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/fMYyu93G.png" alt="https://img1.imgtp.com/2023/09/17/fMYyu93G.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/kqdskMJF.png" alt="https://img1.imgtp.com/2023/09/17/kqdskMJF.png"></p>
-<h2 id="Linux的Shell编程"><a href="#Linux的Shell编程" class="headerlink" title="Linux的Shell编程"></a>Linux的Shell编程</h2><p><img src="https://img1.imgtp.com/2023/09/17/dG6EmWa6.png" alt="https://img1.imgtp.com/2023/09/17/dG6EmWa6.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/V4EBHVSe.png" alt="https://img1.imgtp.com/2023/09/17/V4EBHVSe.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/sERUjXA1.png" alt="https://img1.imgtp.com/2023/09/17/sERUjXA1.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/dQA5NgPj.png" alt="https://img1.imgtp.com/2023/09/17/dQA5NgPj.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/SMRRThRz.png" alt="https://img1.imgtp.com/2023/09/17/SMRRThRz.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/BXzcZvkl.png" alt="https://img1.imgtp.com/2023/09/17/BXzcZvkl.png"></p>
-<p><img src="https://img1.imgtp.com/2023/09/17/d9aERet8.png" alt="https://img1.imgtp.com/2023/09/17/d9aERet8.png"></p>
-]]></content>
-  </entry>
-  <entry>
     <title>MongoDB快速入门</title>
     <url>/2024/04/23/MongoDB%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/</url>
     <content><![CDATA[<h2 id="MongoDB快速入门"><a href="#MongoDB快速入门" class="headerlink" title="MongoDB快速入门"></a>MongoDB快速入门</h2><h3 id="MongoDB安装（Ubuntu）apt模式安装"><a href="#MongoDB安装（Ubuntu）apt模式安装" class="headerlink" title="MongoDB安装（Ubuntu）apt模式安装"></a>MongoDB安装（Ubuntu）apt模式安装</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sudo apt-get install gnupg curl</span><br></pre></td></tr></table></figure>
@@ -682,6 +350,224 @@
 ]]></content>
   </entry>
   <entry>
+    <title>hadoop完全分布式安装</title>
+    <url>/2024/04/23/hadoop%E5%AE%8C%E5%85%A8%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%89%E8%A3%85/</url>
+    <content><![CDATA[<h3 id="环境准备"><a href="#环境准备" class="headerlink" title="环境准备"></a>环境准备</h3><ul>
+<li>三台虚拟机（Centos7.6）</li>
+<li>固定IP地址<ul>
+<li>hadoop101 192.168.10.101</li>
+<li>hadoop102 192.168.10.102</li>
+<li>hadoop103 192.168.10.103</li>
+</ul>
+</li>
+</ul>
+<h3 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h3><p>关闭防火墙并关闭自启动</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">systemctl stop firewalld</span><br><span class="line">systemctl <span class="built_in">disable</span> firewalld.service</span><br></pre></td></tr></table></figure>
+
+<p>创建hadoop用户</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">useradd hadoop</span><br><span class="line">passwd hadoop</span><br></pre></td></tr></table></figure>
+
+<p>配置hadoop拥有root权限</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim /etc/sudoers</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">## Allow root to run any commands anywhere</span><br><span class="line">root    ALL=(ALL)     ALL</span><br><span class="line"></span><br><span class="line">## Allows people in group wheel to run all commands</span><br><span class="line">%wheel  ALL=(ALL)       ALL</span><br><span class="line">hadoop   ALL=(ALL)     NOPASSWD:ALL</span><br></pre></td></tr></table></figure>
+
+<p>在&#x2F;opt目录下新建module目录和software目录</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> /opt/module</span><br><span class="line"><span class="built_in">mkdir</span> /opt/software</span><br></pre></td></tr></table></figure>
+
+<p>修改module文件夹和software文件夹的所有者和所属组</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">chown</span> hadoop:hadoop /opt/module</span><br><span class="line"><span class="built_in">chown</span> hadoop:hadoop /opt/software</span><br></pre></td></tr></table></figure>
+
+<p>卸载虚拟机自带的jdk</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">rpm -qa | grep -i java | xargs -n1 rpm -e --nodeps </span><br></pre></td></tr></table></figure>
+
+<p>重启虚拟机</p>
+<p>设置静态IP地址（网关等信息从虚拟机的网络设置中查看）</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim /etc/sysconfig/network-scripts/ifcfg-ens33</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">DEVICE=ens33</span><br><span class="line">TYPE=Ethernet</span><br><span class="line">ONBOOT=yes</span><br><span class="line">BOOTPROTO=static</span><br><span class="line">NAME=&quot;ens33&quot;</span><br><span class="line">IPADDR=192.168.10.102</span><br><span class="line">PREFIX=24</span><br><span class="line">GATEWAY=192.168.10.101</span><br><span class="line">DNS1=192.168.10.2</span><br></pre></td></tr></table></figure>
+
+<p>修改主机名称</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim /etc/hostname</span><br></pre></td></tr></table></figure>
+
+<p>修改hosts文件</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim /etc/hosts</span><br></pre></td></tr></table></figure>
+
+<p>添加对应的域名解析</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">192.168.10.101 hadoop101</span><br><span class="line">192.168.10.102 hadoop102</span><br><span class="line">192.168.10.103 hadoop103</span><br></pre></td></tr></table></figure>
+
+<p>同理，把三台虚拟机的IP地址和主机名都设置好</p>
+<p>修改Windows系统C:\Windows\System32\drivers\etc下的hosts文件，添加对应的dns信息</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">192.168.10.101 hadoop101</span><br><span class="line">192.168.10.102 hadoop102</span><br><span class="line">192.168.10.103 hadoop103</span><br></pre></td></tr></table></figure>
+
+<p>把jdk上传到&#x2F;opt&#x2F;software目录下，然后解压</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tar -zxvf jdk-8u212-linux-x64.tar.gz -C /opt/module/</span><br></pre></td></tr></table></figure>
+
+<p>配置jdk环境变量</p>
+<p>新建&#x2F;etc&#x2F;profile.d&#x2F;my_env.sh文件</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sudo vim /etc/profile.d/my_env.sh</span><br></pre></td></tr></table></figure>
+
+<p>添加以下内容</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">JAVA_HOME</span></span><br><span class="line">export JAVA_HOME=/opt/module/jdk1.8.0_212</span><br><span class="line">export PATH=$PATH:$JAVA_HOME/bin</span><br></pre></td></tr></table></figure>
+
+<p>使用source让配置生效</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">source</span> /etc/profile</span><br></pre></td></tr></table></figure>
+
+<p>测试是否安装成功</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">java -version</span><br></pre></td></tr></table></figure>
+
+<p>hadoop下载路径：<a href="https://archive.apache.org/dist/hadoop/common/hadoop-2.7.2/">https://archive.apache.org/dist/hadoop/common/hadoop-3.1.3/</a></p>
+<p>上传到&#x2F;opt&#x2F;software目录下，然后解压到module目录下</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tar -zxvf hadoop-3.1.3.tar.gz -C /opt/module/</span><br></pre></td></tr></table></figure>
+
+<p>添加环境变量</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sudo vim /etc/profile.d/my_env.sh</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">HADOOP_HOME</span></span><br><span class="line">export HADOOP_HOME=/opt/module/hadoop-3.1.3</span><br><span class="line">export PATH=$PATH:$HADOOP_HOME/bin</span><br><span class="line">export PATH=$PATH:$HADOOP_HOME/sbin</span><br></pre></td></tr></table></figure>
+
+<p>让配置生效</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">source</span> /etc/profile</span><br></pre></td></tr></table></figure>
+
+<p>测试是否安装成功</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">hadoop version</span><br></pre></td></tr></table></figure>
+
+<p>为了方便管理三台虚拟机，编写分发脚本xsync</p>
+<p>在&#x2F;home&#x2F;hadoop&#x2F;bin 目录下新建xsync文件</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> /home/hadoop</span><br><span class="line"><span class="built_in">mkdir</span> bin</span><br><span class="line"><span class="built_in">cd</span> bin</span><br><span class="line">vim xsync</span><br></pre></td></tr></table></figure>
+
+<p>编写脚本</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/bash</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">1. 判断参数个数</span></span><br><span class="line">if [ $# -lt 1 ]</span><br><span class="line">then</span><br><span class="line">    echo Not Enough Arguement!</span><br><span class="line">    exit;</span><br><span class="line">fi</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">2. 遍历集群所有机器</span></span><br><span class="line">for host in hadoop101 hadoop102 hadoop103</span><br><span class="line">do</span><br><span class="line">    echo ====================  $host  ====================</span><br><span class="line">    #3. 遍历所有目录，挨个发送</span><br><span class="line"></span><br><span class="line">    for file in $@</span><br><span class="line">    do</span><br><span class="line">        #4. 判断文件是否存在</span><br><span class="line">        if [ -e $file ]</span><br><span class="line">            then</span><br><span class="line">                #5. 获取父目录</span><br><span class="line">                pdir=$(cd -P $(dirname $file); pwd)</span><br><span class="line"></span><br><span class="line">                #6. 获取当前文件的名称</span><br><span class="line">                fname=$(basename $file)</span><br><span class="line">                ssh $host &quot;mkdir -p $pdir&quot;</span><br><span class="line">                rsync -av $pdir/$fname $host:$pdir</span><br><span class="line">            else</span><br><span class="line">                echo $file does not exists!</span><br><span class="line">        fi</span><br><span class="line">    done</span><br><span class="line">done</span><br></pre></td></tr></table></figure>
+
+<p>修改权限</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">chmod</span> +x xsync</span><br></pre></td></tr></table></figure>
+
+
+
+<p>配置ssh免密登录</p>
+<p>生成密钥</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">ssh-keygen -t rsa</span><br></pre></td></tr></table></figure>
+
+<p>然后一直敲回车</p>
+<p>复制密钥</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">ssh-copy-id hadoop101</span><br><span class="line">ssh-copy-id hadoop102</span><br><span class="line">ssh-copy-id hadoop103</span><br></pre></td></tr></table></figure>
+
+
+
+<p>配置hadoop的文件</p>
+<p>配置core-site.xml</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> <span class="variable">$HADOOP_HOME</span>/etc/hadoop</span><br><span class="line">vim core-site.xml</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="meta">&lt;?xml-stylesheet type=<span class="string">&quot;text/xsl&quot;</span> href=<span class="string">&quot;configuration.xsl&quot;</span>?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 指定NameNode的地址 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>fs.defaultFS<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hdfs://hadoop101:8020<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 指定hadoop数据的存储目录 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>hadoop.tmp.dir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>/opt/module/hadoop-3.1.3/data<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 配置HDFS网页登录使用的静态用户为hadoop --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>hadoop.http.staticuser.user<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hadoop<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>配置hdfs-site.xml</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim hdfs-site.xml</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="meta">&lt;?xml-stylesheet type=<span class="string">&quot;text/xsl&quot;</span> href=<span class="string">&quot;configuration.xsl&quot;</span>?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">	<span class="comment">&lt;!-- nn web端访问地址--&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.namenode.http-address<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hadoop101:9870<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">	<span class="comment">&lt;!-- 2nn web端访问地址--&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.namenode.secondary.http-address<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hadoop103:9868<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>配置yarn-site.xml</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim yarn-site.xml</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="meta">&lt;?xml-stylesheet type=<span class="string">&quot;text/xsl&quot;</span> href=<span class="string">&quot;configuration.xsl&quot;</span>?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 指定MR走shuffle --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.nodemanager.aux-services<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>mapreduce_shuffle<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 指定ResourceManager的地址--&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.resourcemanager.hostname<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hadoop102<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 环境变量的继承 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.nodemanager.env-whitelist<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_MAPRED_HOME<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>配置mapred-site.xml</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim mapred-site.xml</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="meta">&lt;?xml-stylesheet type=<span class="string">&quot;text/xsl&quot;</span> href=<span class="string">&quot;configuration.xsl&quot;</span>?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">	<span class="comment">&lt;!-- 指定MapReduce程序运行在Yarn上 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>mapreduce.framework.name<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>yarn<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>然后分发配置文件</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">xsync /opt/module/hadoop-3.1.3/etc/hadoop/</span><br></pre></td></tr></table></figure>
+
+<p>三台主机都查看一下配置文件是否正确修改</p>
+<p>配置workers</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim /opt/module/hadoop-3.1.3/etc/hadoop/workers</span><br></pre></td></tr></table></figure>
+
+<p>新增</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hadoop101</span><br><span class="line">hadoop102</span><br><span class="line">hadoop103</span><br></pre></td></tr></table></figure>
+
+<p>然后同步所有主机</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">xsync /opt/module/hadoop-3.1.3/etc</span><br></pre></td></tr></table></figure>
+
+<p>第一次启动需要先格式化hdfs</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">hdfs namenode -format</span><br></pre></td></tr></table></figure>
+
+<p>然后启动hdfs</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sbin/start-dfs.sh</span><br></pre></td></tr></table></figure>
+
+<p>hadoop102启动yarn</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sbin/start-yarn.sh</span><br></pre></td></tr></table></figure>
+
+<p>浏览器输入<a href="http://hadoop101:9870查看hdfs的NameNode">http://hadoop101:9870查看hdfs的NameNode</a></p>
+<p>在<a href="http://hadoop102:8088/">http://hadoop102:8088</a> 查看yarn</p>
+<p>启动&#x2F;关闭集群</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">start-dfs.sh/stop-dfs.sh</span><br><span class="line">start-yarn.sh/stop-yarn.sh</span><br></pre></td></tr></table></figure>
+
+
+
+<p>为了方便启动和关闭集群，编写脚本</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> /home/hadoop/bin</span><br><span class="line">vim myhadoop.sh</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/bash</span></span><br><span class="line"></span><br><span class="line">if [ $# -lt 1 ]</span><br><span class="line">then</span><br><span class="line">    echo &quot;No Args Input...&quot;</span><br><span class="line">    exit ;</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line">case $1 in</span><br><span class="line">&quot;start&quot;)</span><br><span class="line">        echo &quot; =================== 启动 hadoop集群 ===================&quot;</span><br><span class="line"></span><br><span class="line">        echo &quot; --------------- 启动 hdfs ---------------&quot;</span><br><span class="line">        ssh hadoop101 &quot;/opt/module/hadoop-3.1.3/sbin/start-dfs.sh&quot;</span><br><span class="line">        echo &quot; --------------- 启动 yarn ---------------&quot;</span><br><span class="line">        ssh hadoop102 &quot;/opt/module/hadoop-3.1.3/sbin/start-yarn.sh&quot;</span><br><span class="line">        echo &quot; --------------- 启动 historyserver ---------------&quot;</span><br><span class="line">        ssh hadoop101 &quot;/opt/module/hadoop-3.1.3/bin/mapred --daemon start historyserver&quot;</span><br><span class="line">;;</span><br><span class="line">&quot;stop&quot;)</span><br><span class="line">        echo &quot; =================== 关闭 hadoop集群 ===================&quot;</span><br><span class="line"></span><br><span class="line">        echo &quot; --------------- 关闭 historyserver ---------------&quot;</span><br><span class="line">        ssh hadoop101 &quot;/opt/module/hadoop-3.1.3/bin/mapred --daemon stop historyserver&quot;</span><br><span class="line">        echo &quot; --------------- 关闭 yarn ---------------&quot;</span><br><span class="line">        ssh hadoop102 &quot;/opt/module/hadoop-3.1.3/sbin/stop-yarn.sh&quot;</span><br><span class="line">        echo &quot; --------------- 关闭 hdfs ---------------&quot;</span><br><span class="line">        ssh hadoop101 &quot;/opt/module/hadoop-3.1.3/sbin/stop-dfs.sh&quot;</span><br><span class="line">;;</span><br><span class="line">*)</span><br><span class="line">    echo &quot;Input Args Error...&quot;</span><br><span class="line">;;</span><br><span class="line">esac</span><br></pre></td></tr></table></figure>
+
+<p>修改权限</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">chmod</span> +x myhadoop.sh</span><br></pre></td></tr></table></figure>
+
+<p>同理编写查看集群进程的脚本</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> /home/hadoop/bin</span><br><span class="line">vim jpsall</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/bash</span></span><br><span class="line"></span><br><span class="line">for host in hadoop101 hadoop102 hadoop103</span><br><span class="line">do</span><br><span class="line">        echo =============== $host ===============</span><br><span class="line">        ssh $host jps </span><br><span class="line">done</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+]]></content>
+  </entry>
+  <entry>
+    <title>第一篇: 使用hexo+Github搭建个人博客系统</title>
+    <url>/2023/05/18/%E7%AC%AC%E4%B8%80%E7%AF%87%EF%BC%9A%E4%BD%BF%E7%94%A8hexo-Github%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E7%B3%BB%E7%BB%9F/</url>
+    <content><![CDATA[<h2 id="1-环境准备"><a href="#1-环境准备" class="headerlink" title="1.环境准备"></a>1.环境准备</h2><ul>
+<li><p>Github的注册和仓库的创建</p>
+</li>
+<li><p>Git的安装以及绑定Github</p>
+</li>
+<li><p>NodeJS和Hexo的安装</p>
+</li>
+<li><p>切换主题</p>
+</li>
+</ul>
+]]></content>
+  </entry>
+  <entry>
     <title>hbase安装</title>
     <url>/2024/04/23/hbase%E5%AE%89%E8%A3%85/</url>
     <content><![CDATA[<p>下载HBASE到&#x2F;usr&#x2F;local</p>
@@ -892,206 +778,320 @@
 ]]></content>
   </entry>
   <entry>
-    <title>hadoop完全分布式安装</title>
-    <url>/2024/04/23/hadoop%E5%AE%8C%E5%85%A8%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%89%E8%A3%85/</url>
-    <content><![CDATA[<h3 id="环境准备"><a href="#环境准备" class="headerlink" title="环境准备"></a>环境准备</h3><ul>
-<li>三台虚拟机（Centos7.6）</li>
-<li>固定IP地址<ul>
-<li>hadoop101 192.168.10.101</li>
-<li>hadoop102 192.168.10.102</li>
-<li>hadoop103 192.168.10.103</li>
-</ul>
+    <title>第三篇: 大数据集群的配置</title>
+    <url>/2023/05/20/%E7%AC%AC%E4%B8%89%E7%AF%87-%E5%A4%A7%E6%95%B0%E6%8D%AE%E9%9B%86%E7%BE%A4%E7%9A%84%E9%85%8D%E7%BD%AE/</url>
+    <content><![CDATA[<h2 id="一、虚拟机的设置"><a href="#一、虚拟机的设置" class="headerlink" title="一、虚拟机的设置"></a>一、虚拟机的设置</h2><p>​	这里我采用的是使用虚拟机构建大数据集群，如果有钱也可以采用云平台进行大数据集群的构建。</p>
+<p>​	 在VMware的虚拟网络编辑器中，将VMnet8虚拟网卡的：</p>
+<p>​		网段设置为192.168.88.0</p>
+<p>​		网关设置为：192.168.88.2</p>
+<p>​	下载CentOs7.6的镜像文件，然后创建新的虚拟机，选择标准安装，全自动化安装。等待安装完成以后，再进行克隆，克隆完整的系统，这里克隆三个，分别命名为node1、node2、node3，设置node1的内存为4GB、node2和node3的内存为2GB。</p>
+<p>​	然后打开node1，修改主机名，并修改固定IP为：192.168.88.101，node2和node3分别为102和103</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 修改主机名</span></span><br><span class="line">hostnamectl <span class="built_in">set</span>-hostname node1</span><br><span class="line"><span class="comment"># 修改IP地址</span></span><br><span class="line">vim /etc/sysconfig/network-scripts/ifcfg-ens33</span><br><span class="line">IPADDR=<span class="string">&quot;192.168.88.101&quot;</span></span><br><span class="line"><span class="comment"># 重启网卡</span></span><br><span class="line">systemctl restart network</span><br></pre></td></tr></table></figure>
+
+<p>在windows系统中修改hosts文件,新增以下内容</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.101</span> node1</span><br><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.102</span> node2</span><br><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.103</span> node3</span><br></pre></td></tr></table></figure>
+
+<p>在3台Linux的&#x2F;etc&#x2F;hosts中,新增以下内容:</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.101</span> node1</span><br><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.102</span> node2</span><br><span class="line"><span class="number">192.168</span><span class="number">.88</span><span class="number">.103</span> node3</span><br></pre></td></tr></table></figure>
+
+<p>配置SSH免密登录(每台都要执行一遍)</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ssh-keygen -t rsa -b 4096</span><br><span class="line">ssh-copy-id node1</span><br><span class="line">ssh-copy-id node2</span><br><span class="line">ssh-copy-id node3</span><br></pre></td></tr></table></figure>
+
+<p>新增hadoop普通用户.然后重复上诉的SSH操作:</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 新增普通用户</span></span><br><span class="line">useradd hadoop</span><br><span class="line"><span class="comment"># 设置密码</span></span><br><span class="line">passwd hadoop</span><br><span class="line"><span class="comment"># 切换用户</span></span><br><span class="line">su - hadoop</span><br></pre></td></tr></table></figure>
+
+<p>下载JDK</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 新建文件夹存储jdk</span></span><br><span class="line">mkdir -p /export/server</span><br><span class="line"><span class="comment"># 解压文件</span></span><br><span class="line">tar -zxvf jdk-8u351-linux-x64.tar.gz -C /export/server</span><br><span class="line"><span class="comment"># 配置jdk的软链接</span></span><br><span class="line">ln -s /export/server/jdk1<span class="number">.8</span><span class="number">.0_351</span> jdk</span><br><span class="line"><span class="comment"># 配置环境变量(编辑/etc/profile文件)</span></span><br><span class="line">export JAVA_HOME=/export/server/jdk</span><br><span class="line">export PATH=$PATH:$JAVA_HOME/<span class="built_in">bin</span></span><br><span class="line"><span class="comment"># 生效环境变量</span></span><br><span class="line">source /etc/profile</span><br><span class="line"><span class="comment"># 配置java执行程序的软链接(先删除自带的java,再添加下载的)</span></span><br><span class="line">rm -f /usr/<span class="built_in">bin</span>/java</span><br><span class="line">ln -s /export/server/jdk/<span class="built_in">bin</span>/java /usr/<span class="built_in">bin</span>/java</span><br><span class="line"><span class="comment"># 验证</span></span><br><span class="line">java -version</span><br><span class="line">javac -version</span><br></pre></td></tr></table></figure>
+
+<p>为了防止防火墙干扰大数据的软件,将防火墙关闭</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 每一台都执行</span></span><br><span class="line">systemctl stop firewalld</span><br><span class="line">systemctl disable firewalld</span><br><span class="line"><span class="comment"># 关闭SELinux</span></span><br><span class="line">vim /etc/sysconfig/selinux</span><br><span class="line"><span class="comment"># 修改</span></span><br><span class="line">SELINUX=disabled</span><br></pre></td></tr></table></figure>
+
+<p>调整每个服务器的时区为中国东八区的时区(校验时间)</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 安装ntp软件</span></span><br><span class="line">yum install -y ntp</span><br><span class="line"><span class="comment"># 更新时区</span></span><br><span class="line">rm -f /etc/localtime</span><br><span class="line">sudo ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime</span><br><span class="line"><span class="comment"># 同步时间</span></span><br><span class="line">ntpdate -u ntp.aliyun.com</span><br><span class="line"><span class="comment"># 开启ntp服务并设置开机自启动</span></span><br><span class="line">systemctl start ntpd</span><br><span class="line">systemctl enable ntpd</span><br></pre></td></tr></table></figure>
+
+<h2 id="二、Hadoop的部署"><a href="#二、Hadoop的部署" class="headerlink" title="二、Hadoop的部署"></a>二、Hadoop的部署</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 上传文件到node1</span></span><br><span class="line"><span class="comment"># 解压</span></span><br><span class="line">tar -zxvf hadoop-<span class="number">3.3</span><span class="number">.4</span>.tar.gz -C /export/server</span><br><span class="line"><span class="comment"># 构建软链接</span></span><br><span class="line">ln -s /export/server/hadoop-<span class="number">3.3</span><span class="number">.4</span> hadoop</span><br><span class="line"><span class="comment"># 先cd /export/server/hadoop，然后再cd etc/hadoop</span></span><br><span class="line">vim workers</span><br><span class="line"><span class="comment"># 填入</span></span><br><span class="line">node1</span><br><span class="line">node2</span><br><span class="line">node3</span><br><span class="line"><span class="comment"># 然后配置hadoop-env.sh文件，同样使用vim hadoop-env.sh</span></span><br><span class="line">export JAVA_HOME=/export/server/jdk</span><br><span class="line">export HADOOP_HOME=/export/server/hadoop</span><br><span class="line">export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop</span><br><span class="line">export HADOOP_LOG_DIR=$HADOOP_HOME/logs</span><br><span class="line"><span class="comment"># 配置core-site.xml</span></span><br><span class="line">&lt;configuration&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;fs.defaultFS&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;hdfs://node1:<span class="number">8020</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;io.file.buffer.size&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">131072</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">&lt;/configuration&gt;</span><br><span class="line"><span class="comment"># 配置hdfs-site.xml</span></span><br><span class="line">&lt;configuration&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.datanode.data.<span class="built_in">dir</span>.perm&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">700</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.namenode.name.<span class="built_in">dir</span>&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;/data/nn&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.namenode.hosts&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;node1,node2,node3&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">&lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.blocksize&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">268435456</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.namenode.handler.count&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;<span class="number">100</span>&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">  &lt;<span class="built_in">property</span>&gt;</span><br><span class="line">    &lt;name&gt;dfs.datanode.data.<span class="built_in">dir</span>&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;/data/dn&lt;/value&gt;</span><br><span class="line">  &lt;/<span class="built_in">property</span>&gt;</span><br><span class="line">&lt;/configuration&gt;</span><br><span class="line"><span class="comment"># node1节点</span></span><br><span class="line">mkdir -p /data/nn</span><br><span class="line">mkdir -p /data/dn</span><br><span class="line"><span class="comment"># node2和node3</span></span><br><span class="line">mkdir -p /data/dn</span><br><span class="line"><span class="comment"># 复制hadoop到node2和node3</span></span><br><span class="line">cd /export/server</span><br><span class="line">scp -r hadoop-<span class="number">3.3</span><span class="number">.4</span> node2:`pwd`/</span><br><span class="line">scp -r hadoop-<span class="number">3.3</span><span class="number">.4</span> node3:`pwd`/</span><br><span class="line"><span class="comment"># 在node2和node3分别建立软链接</span></span><br><span class="line">ln -s /export/server/hadoop-<span class="number">3.3</span><span class="number">.4</span> /export/server/hadoop</span><br><span class="line"><span class="comment"># 配置环境变量 vim /etc/profile (退回顶级目录执行)</span></span><br><span class="line">export HADOOP_HOME=/export/server/hadoop</span><br><span class="line">export PATH=$PATH:$HADOOP_HOME/<span class="built_in">bin</span>:$HADOOP_HOME/sbin</span><br><span class="line"><span class="comment"># source /etc/profile 生效环境变量</span></span><br><span class="line"><span class="comment"># 使用root身份,将权限给普通用户,三台服务器都要</span></span><br><span class="line">chown -R hadoop:hadoop /data</span><br><span class="line">chown -R hadoop:hadoop /export</span><br><span class="line"><span class="comment"># 格式化namenode</span></span><br><span class="line">su - hadoop <span class="comment"># 切换为hadoop普通用户</span></span><br><span class="line">hadoop namenode -<span class="built_in">format</span> <span class="comment"># 格式化</span></span><br><span class="line"><span class="comment"># 启动HDFS集群</span></span><br><span class="line">start-dfs.sh</span><br><span class="line"><span class="comment"># 关闭HDFS集群</span></span><br><span class="line">stop-dfs.sh</span><br></pre></td></tr></table></figure>
+
+]]></content>
+  </entry>
+  <entry>
+    <title>第二篇:ES6-ES11的新语法</title>
+    <url>/2023/05/18/%E7%AC%AC%E4%BA%8C%E7%AF%87%EF%BC%9AES6-ES11%E7%9A%84%E6%96%B0%E8%AF%AD%E6%B3%95/</url>
+    <content><![CDATA[<h2 id="1-ES6"><a href="#1-ES6" class="headerlink" title="1.ES6"></a>1.ES6</h2><p>1.let 和var的区别</p>
+<p>作用域不同,var是全局变量而let是根据为位置决定</p>
+<p>2.const定义常量,防止变量标识符的重新分配</p>
+<p>3.防止对象被改变:Object.freeze(obj)</p>
+<p>4.箭头函数代替function关键字:const myFun&#x3D;(attribute)&#x3D;&gt;{}</p>
+<p>设置默认参数const myFun&#x3D;(attribute&#x3D;value)&#x3D;&gt;{}</p>
+<p>5.rest操作符: …args等同于将args数组展开</p>
+<p>6.解构赋值:</p>
+<p>(1)对象的解构赋值:</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> user = &#123; <span class="attr">name</span>: <span class="string">&#x27;John Doe&#x27;</span>, <span class="attr">age</span>: <span class="number">34</span> &#125;;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> &#123; name, age &#125; = user;<span class="comment">//将user的name和age的值赋值给了name和age变量</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> &#123; <span class="attr">name</span>: userName, <span class="attr">age</span>: userAge &#125; = user;<span class="comment">//将user.name和user.age的值分配给了新变量</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> user = &#123;</span><br><span class="line">  <span class="attr">johnDoe</span>: &#123; </span><br><span class="line">    <span class="attr">age</span>: <span class="number">34</span>,</span><br><span class="line">    <span class="attr">email</span>: <span class="string">&#x27;johnDoe@freeCodeCamp.com&#x27;</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>嵌套对象的解构赋值:</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> &#123; <span class="attr">johnDoe</span>: &#123; age, email &#125;&#125; = user;<span class="comment">//这是解构对象的属性值赋值给具有相同名字的变量：</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> &#123; <span class="attr">johnDoe</span>: &#123; <span class="attr">age</span>: userAge, <span class="attr">email</span>: userEmail &#125;&#125; = user;<span class="comment">//这是将对象的属性值赋值给具有不同名字的变量：</span></span><br></pre></td></tr></table></figure>
+
+<p>(2)数组的解构赋值:</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> [a, b] = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>];</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> [a, b,,, c] = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>];</span><br></pre></td></tr></table></figure>
+
+<p>例:交换变量的值:let a&#x3D;10;      let b&#x3D;20;     [a,b]&#x3D;[b,a];</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> [a, b, ...arr] = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">7</span>];</span><br></pre></td></tr></table></figure>
+
+<p>arr就是新的数组[3,4,5,7];</p>
+<p>(3)模板字面量:</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> person = &#123;</span><br><span class="line">  <span class="attr">name</span>: <span class="string">&quot;Zodiac Hasbro&quot;</span>,</span><br><span class="line">  <span class="attr">age</span>: <span class="number">56</span></span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">const</span> greeting = <span class="string">`Hello, my name is <span class="subst">$&#123;person.name&#125;</span>!</span></span><br><span class="line"><span class="string">I am <span class="subst">$&#123;person.age&#125;</span> years old.`</span>;<span class="comment">//占位符$&#123;&#125;</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">const getMousePosition = (x, y) =&gt; (&#123;</span><br><span class="line">  x: x,</span><br><span class="line">  y: y</span><br><span class="line">&#125;);//等同于</span><br><span class="line">const getMousePosition = (x, y) =&gt; (&#123; x, y &#125;);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> person = &#123;</span><br><span class="line">  <span class="attr">name</span>: <span class="string">&quot;Taylor&quot;</span>,</span><br><span class="line">  <span class="attr">sayHello</span>: <span class="keyword">function</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">`Hello! My name is <span class="subst">$&#123;<span class="variable language_">this</span>.name&#125;</span>.`</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> person = &#123;</span><br><span class="line">  <span class="attr">name</span>: <span class="string">&quot;Taylor&quot;</span>,</span><br><span class="line">  <span class="title function_">sayHello</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">`Hello! My name is <span class="subst">$&#123;<span class="variable language_">this</span>.name&#125;</span>.`</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;<span class="comment">//简洁的函数声明</span></span><br></pre></td></tr></table></figure>
+
+<p>构造函数:</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">var</span> <span class="title class_">SpaceShuttle</span> = <span class="keyword">function</span>(<span class="params">targetPlanet</span>)&#123;</span><br><span class="line">  <span class="variable language_">this</span>.<span class="property">targetPlanet</span> = targetPlanet;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">SpaceShuttle</span> &#123;</span><br><span class="line">  <span class="title function_">constructor</span>(<span class="params">targetPlanet</span>) &#123;</span><br><span class="line">    <span class="variable language_">this</span>.<span class="property">targetPlanet</span> = targetPlanet;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Book</span> &#123;</span><br><span class="line">  <span class="title function_">constructor</span>(<span class="params">author</span>) &#123;</span><br><span class="line">    <span class="variable language_">this</span>.<span class="property">_author</span> = author;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// getter 定义时的赋值</span></span><br><span class="line">  <span class="keyword">get</span> <span class="title function_">writer</span>() &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="variable language_">this</span>.<span class="property">_author</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// setter 改变writer属性值的时候</span></span><br><span class="line">  <span class="keyword">set</span> <span class="title function_">writer</span>(<span class="params">updatedAuthor</span>) &#123;</span><br><span class="line">    <span class="variable language_">this</span>.<span class="property">_author</span> = updatedAuthor;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">const</span> novel = <span class="keyword">new</span> <span class="title class_">Book</span>(<span class="string">&#x27;anonymous&#x27;</span>);</span><br><span class="line"><span class="variable language_">console</span>.<span class="title function_">log</span>(novel.<span class="property">writer</span>);</span><br><span class="line">novel.<span class="property">writer</span> = <span class="string">&#x27;newAuthor&#x27;</span>;</span><br><span class="line"><span class="variable language_">console</span>.<span class="title function_">log</span>(novel.<span class="property">writer</span>);</span><br></pre></td></tr></table></figure>
+
+<p>7.导入模块js文件:</p>
+<figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">script</span> <span class="attr">type</span>=<span class="string">&quot;module&quot;</span> <span class="attr">src</span>=<span class="string">&quot;filename.js&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>export导出js的模块:</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="keyword">const</span> <span class="title function_">add</span> = (<span class="params">x, y</span>) =&gt; &#123;</span><br><span class="line">  <span class="keyword">return</span> x + y;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> <span class="title function_">add</span> = (<span class="params">x, y</span>) =&gt; &#123;</span><br><span class="line">  <span class="keyword">return</span> x + y;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">export</span> &#123; add &#125;;<span class="comment">//可以一次导出多个变量或函数</span></span><br></pre></td></tr></table></figure>
+
+<p>import导入js模块:</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> &#123; add, subtract &#125; <span class="keyword">from</span> <span class="string">&#x27;./math_functions.js&#x27;</span>; </span><br></pre></td></tr></table></figure>
+
+<p>全部导入:</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> * <span class="keyword">as</span> myMathModule <span class="keyword">from</span> <span class="string">&quot;./math_functions.js&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>上面的 <code>import</code> 语句会创建一个叫作 <code>myMathModule</code> 的对象。 这只是一个变量名，可以随便命名。 对象包含 <code>math_functions.js</code> 文件里的所有导出，可以像访问对象的属性那样访问里面的函数。 下面是使用导入的 <code>add</code> 和 <code>subtract</code> 函数的例子：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">myMathModule.<span class="title function_">add</span>(<span class="number">2</span>,<span class="number">3</span>);</span><br><span class="line">myMathModule.<span class="title function_">subtract</span>(<span class="number">5</span>,<span class="number">3</span>);</span><br></pre></td></tr></table></figure>
+
+<p>还需要了解另外一种被称为默认导出的 <code>export</code> 的语法。 在文件中只有一个值需要导出的时候，通常会使用这种语法。 它也常常用于给文件或者模块创建返回值。</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> <span class="keyword">function</span> <span class="title function_">add</span>(<span class="params">x, y</span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> x + y;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> <span class="keyword">function</span>(<span class="params">x, y</span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> x + y;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第一个是命名函数，第二个是匿名函数。</p>
+<p><code>export default</code> 用于为模块或文件声明一个返回值，在每个文件或者模块中应当只默认导出一个值。 此外，你不能将 <code>export default</code> 与 <code>var</code>、<code>let</code> 或 <code>const</code> 同时使用。</p>
+<p> 还需要一种 <code>import</code> 的语法来导入默认的导出。 在下面的例子里，<code>add</code> 是 <code>math_functions.js</code> 文件的默认导出。 以下是如何导入它：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> add <span class="keyword">from</span> <span class="string">&quot;./math_functions.js&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>这个语法有一处特别的地方， 被导入的 <code>add</code> 值没有被花括号（<code>&#123;&#125;</code>）所包围。 <code>add</code> 只是一个变量的名字，对应 <code>math_functions.js</code> 文件的任何默认导出值。 在导入默认导出时，可以使用任何名字。</p>
+<p>8.Promise:</p>
+<p>Promise 是异步编程的一种解决方案 - 它在未来的某时会生成一个值。 任务完成，分执行成功和执行失败两种情况。 <code>Promise</code> 是构造器函数，需要通过 <code>new</code> 关键字来创建。 构造器参数是一个函数，该函数有两个参数 - <code>resolve</code> 和 <code>reject</code>。 通过它们来判断 promise 的执行结果。 用法如下：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> myPromise = <span class="keyword">new</span> <span class="title class_">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line"></span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>​											<strong>通过 resolve 和 reject 完成 Promise</strong></p>
+<p>Promise 有三个状态：<code>pending</code>、<code>fulfilled</code> 和 <code>rejected</code>。 上一个挑战里创建的 promise 一直阻塞在 <code>pending</code> 状态里，因为没有调用 promise 的完成方法。 Promise 提供的 <code>resolve</code> 和 <code>reject</code> 参数就是用来结束 promise 的。 Promise 成功时调用 <code>resolve</code>，promise 执行失败时调用 <code>reject</code>， 如下文所述，这些方法需要有一个参数。</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> myPromise = <span class="keyword">new</span> <span class="title class_">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">if</span>(condition here) &#123;</span><br><span class="line">    <span class="title function_">resolve</span>(<span class="string">&quot;Promise was fulfilled&quot;</span>);</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="title function_">reject</span>(<span class="string">&quot;Promise was rejected&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>上面的示例使用字符串作为这些函数的参数，但参数实际上可以是任何格式。 通常，它可能是一个包含数据的对象，你可以将它放在网站或其他地方。</p>
+<p>​												<strong>用 then 处理 Promise 完成的情况</strong></p>
+<p>当程序需要花费未知的时间才能完成时（比如一些异步操作），一般是服务器请求，promise 很有用。 服务器请求会花费一些时间，当结束时，需要根据服务器的响应执行一些操作。 这可以用 <code>then</code> 方法来实现， 当 promise 完成 <code>resolve</code> 时会触发 <code>then</code> 方法。 例子如下：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">myPromise.<span class="title function_">then</span>(<span class="function"><span class="params">result</span> =&gt;</span> &#123;</span><br><span class="line"></span><br><span class="line">&#125;);<span class="comment">//result 即传入 resolve 方法的参数</span></span><br></pre></td></tr></table></figure>
+
+<p>​											<strong>使用 catch 处理 Promise 失败的情况</strong></p>
+<p>当 promise 失败时会调用 <code>catch</code> 方法。 当 promise 的 <code>reject</code> 方法执行时会直接调用。 用法如下：</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">myPromise.<span class="title function_">catch</span>(<span class="function"><span class="params">error</span> =&gt;</span> &#123;</span><br><span class="line"></span><br><span class="line">&#125;);<span class="comment">//error 是传入 reject 方法的参数。</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="2-ES7"><a href="#2-ES7" class="headerlink" title="2.ES7"></a>2.ES7</h2><p>includes:数组方法,判断是否数组含有某元素,返回布尔值</p>
+<p>**:表示幂运算的运算符</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> books=[<span class="string">&quot;tom&quot;</span>,<span class="string">&quot;sakura&quot;</span>];</span><br><span class="line"><span class="variable language_">console</span>.<span class="title function_">log</span>(books.<span class="title function_">includes</span>(<span class="string">&quot;tom&quot;</span>));</span><br><span class="line"><span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="number">2</span>**<span class="number">10</span>);</span><br></pre></td></tr></table></figure>
+
+<p>async和await:</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//async函数返回值为promise对象</span></span><br><span class="line"><span class="comment">//promise对象的结果由async函数执行的返回值决定</span></span><br><span class="line"><span class="keyword">function</span> <span class="title function_">getData</span>(<span class="params">url</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">Promise</span>(<span class="function">(<span class="params">resolved, reject</span>) =&gt;</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> xhr = <span class="keyword">new</span> <span class="title class_">XMLHttpRequest</span>();</span><br><span class="line">        xhr.<span class="title function_">open</span>(<span class="string">&quot;GET&quot;</span>, url);</span><br><span class="line">        xhr.<span class="title function_">send</span>();</span><br><span class="line">        xhr.<span class="property">onreadystatechange</span> = <span class="function">() =&gt;</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (xhr.<span class="property">readyState</span> === <span class="number">4</span>) &#123;</span><br><span class="line">                <span class="keyword">if</span> (xhr.<span class="property">status</span> &gt;= <span class="number">200</span> &amp;&amp; xhr.<span class="property">status</span> &lt; <span class="number">300</span>) &#123;</span><br><span class="line">                    <span class="title function_">resolved</span>(xhr.<span class="property">response</span>);</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    <span class="title function_">reject</span>(xhr.<span class="property">status</span>);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">async</span> <span class="keyword">function</span> <span class="title function_">get</span>(<span class="params"></span>)&#123;</span><br><span class="line">    <span class="keyword">let</span> result=<span class="title function_">getData</span>(<span class="string">&quot;http:///localhost:8000&quot;</span>);</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(result);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-ES8-对象方法的扩展"><a href="#3-ES8-对象方法的扩展" class="headerlink" title="3.ES8 对象方法的扩展:"></a>3.ES8 对象方法的扩展:</h2><figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//Object.keys(obj) 获取对象的键</span></span><br><span class="line"><span class="comment">//Object.values(obj) 获取对象的值</span></span><br><span class="line"><span class="comment">//Object.entries(obj) 获取对象的二维数组形式</span></span><br><span class="line"><span class="comment">//Object.getOwnPropertyDescriptors(obj) 获取对象的描述对象</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="4-ES9-正则扩展"><a href="#4-ES9-正则扩展" class="headerlink" title="4.ES9 正则扩展:"></a>4.ES9 正则扩展:</h2><figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//命名捕获分组</span></span><br><span class="line"><span class="keyword">let</span> str=<span class="string">&quot;&lt;a href=&#x27;http:www.baidu.com&#x27;&gt;&lt;/a&gt;&quot;</span>;</span><br><span class="line"><span class="keyword">const</span> reg=<span class="regexp">/&lt;a href=&quot;(.*)&quot;&gt;(.*)&lt;\/a&gt;/</span>;</span><br><span class="line"><span class="keyword">const</span> result=reg.<span class="title function_">exec</span>(str);</span><br><span class="line"><span class="variable language_">console</span>.<span class="title function_">log</span>(result[<span class="number">1</span>]);</span><br><span class="line"><span class="keyword">const</span> reg1=<span class="regexp">/&lt;a href=&quot;(?&lt;url&gt;.*)&quot;&gt;(?&lt;text&gt;.*)&lt;\/a&gt;/</span>;</span><br><span class="line"><span class="keyword">const</span> result1=reg1.<span class="title function_">exec</span>(str);</span><br><span class="line"><span class="variable language_">console</span>.<span class="title function_">log</span>(result.<span class="property">groups</span>.<span class="property">name</span>);</span><br><span class="line"><span class="comment">//反向断言 (?&lt;=啊)</span></span><br><span class="line"><span class="comment">//dotAll 新增s修饰符 写在//s</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="5-ES10"><a href="#5-ES10" class="headerlink" title="5.ES10:"></a>5.ES10:</h2><figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//Object.fromEntries() 利用传入的二维数组创建一个对象</span></span><br><span class="line"><span class="comment">//flat和flatMap 将数组降维 flat接收数字参数决定降的维度 flatMap将map和flat结合</span></span><br><span class="line"><span class="comment">//Symbol.prototype.description</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="6-ES11"><a href="#6-ES11" class="headerlink" title="6.ES11:"></a>6.ES11:</h2><figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//私有属性</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Person</span>&#123;</span><br><span class="line">    name;</span><br><span class="line">    #age;<span class="comment">//私有属性,以#开头</span></span><br><span class="line">    <span class="title function_">constructor</span>(<span class="params">name,age</span>)&#123;</span><br><span class="line">        <span class="variable language_">this</span>.<span class="property">name</span>=name;</span><br><span class="line">        <span class="variable language_">this</span>.#age=age;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//Promise.allSettled([]) 接收数组 每个元素是个Promise对象 始终成功</span></span><br><span class="line"><span class="comment">//Promise.all([]) 接收参数一样 状态取决于参数是否都成功 否则失败</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//String.prototype.matchAll 返回一个可迭代的对象</span></span><br><span class="line"><span class="keyword">let</span> str = <span class="string">`</span></span><br><span class="line"><span class="string">    &lt;ul&gt;</span></span><br><span class="line"><span class="string">        &lt;li&gt;</span></span><br><span class="line"><span class="string">            &lt;a&gt;你好&lt;/a&gt;</span></span><br><span class="line"><span class="string">            &lt;p&gt;世界&lt;/p&gt;</span></span><br><span class="line"><span class="string">        &lt;/li&gt;   </span></span><br><span class="line"><span class="string">        &lt;li&gt;</span></span><br><span class="line"><span class="string">            &lt;a&gt;Hello World&lt;/a&gt;</span></span><br><span class="line"><span class="string">            &lt;p&gt;sakura&lt;/p&gt;</span></span><br><span class="line"><span class="string">        &lt;/li&gt;  </span></span><br><span class="line"><span class="string">    &lt;/ul&gt;</span></span><br><span class="line"><span class="string">`</span>;</span><br><span class="line">      <span class="keyword">const</span> reg = <span class="regexp">/&lt;li&gt;.*?&lt;a&gt;(.*?)&lt;\/a&gt;.*?&lt;p&gt;(.*?)&lt;\/p&gt;/g</span>s;</span><br><span class="line">      <span class="keyword">const</span> result = str.<span class="title function_">exec</span>(reg);</span><br><span class="line">      <span class="keyword">for</span> (<span class="keyword">let</span> v <span class="keyword">of</span> result) &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(v);</span><br><span class="line">      &#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//可选链操作符 ?. 在使用对象的属性之前判断对象是否存在</span></span><br><span class="line"><span class="comment">//动态import	import(&quot;&quot;).then(module=&gt;&#123;module.method()&#125;);</span></span><br></pre></td></tr></table></figure>
+
+<p>BigInt类型:大整形</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//大数值的运算</span></span><br><span class="line"><span class="keyword">let</span> n=<span class="number">123</span>;</span><br><span class="line"><span class="keyword">let</span> m=<span class="title class_">BigInt</span>(n); </span><br></pre></td></tr></table></figure>
+
+<p>globalThis:始终指向全局对象</p>
+]]></content>
+  </entry>
+  <entry>
+    <title>第四章:Linux学习基础篇</title>
+    <url>/2023/07/13/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/</url>
+    <content><![CDATA[<h1 id="Linux学习笔记"><a href="#Linux学习笔记" class="headerlink" title="Linux学习笔记"></a>Linux学习笔记</h1><p>三种网络连接方式：</p>
+<pre><code>- 桥接模式：同一个网段建立连接，容易产生IP冲突
+- NAT模式：网络地址转换，生成虚拟的网络地址，通过代理地址访问外网
+- 主机模式：独立的系统，不与外界发生联系
+</code></pre>
+<p>安装vmtool，可以创建Windows和Linux共享文件夹</p>
+<h3 id="Linux的文件结构"><a href="#Linux的文件结构" class="headerlink" title="Linux的文件结构"></a>Linux的文件结构</h3><p>​		Linux中，一切皆是文件，Linux文件系统是采用级层式的树状目录结构，在此结构中的最上层是根目录”&#x2F;“，然后在此目录下再创建其他的目录。</p>
+<p><img src="https://img1.imgtp.com/2023/06/08/COzrs7Ji.jpg"></p>
+<ul>
+<li><p>&#x2F;bin <em><strong>[常用]</strong></em> 是Binary的缩写,这个目录存放着最经常使用的命令</p>
+</li>
+<li><p>&#x2F;sbin s就是Super User的意思,这里存放的是系统管理员使用的系统管理程序</p>
+</li>
+<li><p>&#x2F;home <em><strong>[常用]</strong></em>  存放普通用户的主目录,在Linux中每个用户都有一个自己的目录,一般该目录名是以用户的账号命名</p>
+</li>
+<li><p>&#x2F;root <em><strong>[常用]</strong></em> 该目录为系统管理员,也称作超级权限者的用户主目录</p>
+</li>
+<li><p>&#x2F;lib 系统开机所需要最基本的动态连接共享池,其作用类似于windows里的DLL文件,几乎所有的应用程序都需要用到这些共享库</p>
+</li>
+<li><p>&#x2F;lost+found 一般为空,当系统非法关机后,这里就存放了一些文件</p>
+</li>
+<li><p>&#x2F;etc <em><strong>[常用]</strong></em> 所有的系统管理所需要的配置文件和子目录 ,比如安装mysql数据库 my.conf</p>
+</li>
+<li><p>&#x2F;usr <em><strong>[常用]</strong></em> 十分重要的目录,用户的很多应用程序和文件都放在这个目录下,类似与windows下的program files目录</p>
+</li>
+<li><p>&#x2F;boot <em><strong>[常用]</strong></em> 存放的是启动Linux时使用的一些核心文件,包括一些连接文件以及镜像文件</p>
+</li>
+<li><p>&#x2F;prov <em><strong>[不能动]</strong></em> 这个目录是一个虚拟的目录,它是系统内存的映射,访问这个目录来获取系统信息</p>
+</li>
+<li><p>&#x2F;srv <em><strong>[不能动]</strong></em> service的缩写,该目录存放一些服务启动之后需要提取的数据</p>
+</li>
+<li><p>&#x2F;sys <em><strong>[不能动]</strong></em> 这是Linux2.6内核的一个很大的变化,该目录下安装了2.6内核中新出现的一个文件系统sysfs</p>
+</li>
+<li><p>&#x2F;tmp 这个目录是用来存放一些临时文件的</p>
+</li>
+<li><p>&#x2F;dev 类似于windows的设备管理器,把所有的硬件用文件的形式存储</p>
+</li>
+<li><p>&#x2F;media <em><strong>[常用]</strong></em> Linux系统会自动识别一些设备,例如U盘,光驱等等,当识别后,Linux会把识别的设备挂载到这个目录下</p>
+</li>
+<li><p>&#x2F;mnt <em><strong>[常用]</strong></em> 系统提供该目录是为了让用户临时挂载别的文件系统的,我们可以将外部的存储挂载在&#x2F;mnt上,然后进入该目录就可以查看里的内容了</p>
+</li>
+<li><p>&#x2F;opt 这是给主机额外安装软件所摆放的目录.如安装ORACLE数据库就可以放到该目录下.默认为空</p>
+</li>
+<li><p>&#x2F;usr&#x2F;local <em><strong>[常用]</strong></em> 这是另一个给主机额外安装软件所安装的目录,一般是通过编译源码方式安装的程序</p>
+</li>
+<li><p>&#x2F;var <em><strong>[常用]</strong></em> 这个目录中存放着在不断扩充着的东西,习惯将经常被修改的目录放在这个目录下.包括各种日志文件</p>
+</li>
+<li><p>&#x2F;selinux <em><strong>[security-enhanced linux]</strong></em> SELinux是一种安全子系统,它能控制程序只能访问特定文件,有三种工作模式,可以自行设置.</p>
 </li>
 </ul>
-<h3 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h3><p>关闭防火墙并关闭自启动</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">systemctl stop firewalld</span><br><span class="line">systemctl <span class="built_in">disable</span> firewalld.service</span><br></pre></td></tr></table></figure>
-
-<p>创建hadoop用户</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">useradd hadoop</span><br><span class="line">passwd hadoop</span><br></pre></td></tr></table></figure>
-
-<p>配置hadoop拥有root权限</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim /etc/sudoers</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">## Allow root to run any commands anywhere</span><br><span class="line">root    ALL=(ALL)     ALL</span><br><span class="line"></span><br><span class="line">## Allows people in group wheel to run all commands</span><br><span class="line">%wheel  ALL=(ALL)       ALL</span><br><span class="line">hadoop   ALL=(ALL)     NOPASSWD:ALL</span><br></pre></td></tr></table></figure>
-
-<p>在&#x2F;opt目录下新建module目录和software目录</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> /opt/module</span><br><span class="line"><span class="built_in">mkdir</span> /opt/software</span><br></pre></td></tr></table></figure>
-
-<p>修改module文件夹和software文件夹的所有者和所属组</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">chown</span> hadoop:hadoop /opt/module</span><br><span class="line"><span class="built_in">chown</span> hadoop:hadoop /opt/software</span><br></pre></td></tr></table></figure>
-
-<p>卸载虚拟机自带的jdk</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">rpm -qa | grep -i java | xargs -n1 rpm -e --nodeps </span><br></pre></td></tr></table></figure>
-
-<p>重启虚拟机</p>
-<p>设置静态IP地址（网关等信息从虚拟机的网络设置中查看）</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim /etc/sysconfig/network-scripts/ifcfg-ens33</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">DEVICE=ens33</span><br><span class="line">TYPE=Ethernet</span><br><span class="line">ONBOOT=yes</span><br><span class="line">BOOTPROTO=static</span><br><span class="line">NAME=&quot;ens33&quot;</span><br><span class="line">IPADDR=192.168.10.102</span><br><span class="line">PREFIX=24</span><br><span class="line">GATEWAY=192.168.10.101</span><br><span class="line">DNS1=192.168.10.2</span><br></pre></td></tr></table></figure>
-
-<p>修改主机名称</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim /etc/hostname</span><br></pre></td></tr></table></figure>
-
-<p>修改hosts文件</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim /etc/hosts</span><br></pre></td></tr></table></figure>
-
-<p>添加对应的域名解析</p>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">192.168.10.101 hadoop101</span><br><span class="line">192.168.10.102 hadoop102</span><br><span class="line">192.168.10.103 hadoop103</span><br></pre></td></tr></table></figure>
-
-<p>同理，把三台虚拟机的IP地址和主机名都设置好</p>
-<p>修改Windows系统C:\Windows\System32\drivers\etc下的hosts文件，添加对应的dns信息</p>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">192.168.10.101 hadoop101</span><br><span class="line">192.168.10.102 hadoop102</span><br><span class="line">192.168.10.103 hadoop103</span><br></pre></td></tr></table></figure>
-
-<p>把jdk上传到&#x2F;opt&#x2F;software目录下，然后解压</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tar -zxvf jdk-8u212-linux-x64.tar.gz -C /opt/module/</span><br></pre></td></tr></table></figure>
-
-<p>配置jdk环境变量</p>
-<p>新建&#x2F;etc&#x2F;profile.d&#x2F;my_env.sh文件</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sudo vim /etc/profile.d/my_env.sh</span><br></pre></td></tr></table></figure>
-
-<p>添加以下内容</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">JAVA_HOME</span></span><br><span class="line">export JAVA_HOME=/opt/module/jdk1.8.0_212</span><br><span class="line">export PATH=$PATH:$JAVA_HOME/bin</span><br></pre></td></tr></table></figure>
-
-<p>使用source让配置生效</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">source</span> /etc/profile</span><br></pre></td></tr></table></figure>
-
-<p>测试是否安装成功</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">java -version</span><br></pre></td></tr></table></figure>
-
-<p>hadoop下载路径：<a href="https://archive.apache.org/dist/hadoop/common/hadoop-2.7.2/">https://archive.apache.org/dist/hadoop/common/hadoop-3.1.3/</a></p>
-<p>上传到&#x2F;opt&#x2F;software目录下，然后解压到module目录下</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tar -zxvf hadoop-3.1.3.tar.gz -C /opt/module/</span><br></pre></td></tr></table></figure>
-
-<p>添加环境变量</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sudo vim /etc/profile.d/my_env.sh</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">HADOOP_HOME</span></span><br><span class="line">export HADOOP_HOME=/opt/module/hadoop-3.1.3</span><br><span class="line">export PATH=$PATH:$HADOOP_HOME/bin</span><br><span class="line">export PATH=$PATH:$HADOOP_HOME/sbin</span><br></pre></td></tr></table></figure>
-
-<p>让配置生效</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">source</span> /etc/profile</span><br></pre></td></tr></table></figure>
-
-<p>测试是否安装成功</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">hadoop version</span><br></pre></td></tr></table></figure>
-
-<p>为了方便管理三台虚拟机，编写分发脚本xsync</p>
-<p>在&#x2F;home&#x2F;hadoop&#x2F;bin 目录下新建xsync文件</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> /home/hadoop</span><br><span class="line"><span class="built_in">mkdir</span> bin</span><br><span class="line"><span class="built_in">cd</span> bin</span><br><span class="line">vim xsync</span><br></pre></td></tr></table></figure>
-
-<p>编写脚本</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/bash</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">1. 判断参数个数</span></span><br><span class="line">if [ $# -lt 1 ]</span><br><span class="line">then</span><br><span class="line">    echo Not Enough Arguement!</span><br><span class="line">    exit;</span><br><span class="line">fi</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">2. 遍历集群所有机器</span></span><br><span class="line">for host in hadoop101 hadoop102 hadoop103</span><br><span class="line">do</span><br><span class="line">    echo ====================  $host  ====================</span><br><span class="line">    #3. 遍历所有目录，挨个发送</span><br><span class="line"></span><br><span class="line">    for file in $@</span><br><span class="line">    do</span><br><span class="line">        #4. 判断文件是否存在</span><br><span class="line">        if [ -e $file ]</span><br><span class="line">            then</span><br><span class="line">                #5. 获取父目录</span><br><span class="line">                pdir=$(cd -P $(dirname $file); pwd)</span><br><span class="line"></span><br><span class="line">                #6. 获取当前文件的名称</span><br><span class="line">                fname=$(basename $file)</span><br><span class="line">                ssh $host &quot;mkdir -p $pdir&quot;</span><br><span class="line">                rsync -av $pdir/$fname $host:$pdir</span><br><span class="line">            else</span><br><span class="line">                echo $file does not exists!</span><br><span class="line">        fi</span><br><span class="line">    done</span><br><span class="line">done</span><br></pre></td></tr></table></figure>
-
-<p>修改权限</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">chmod</span> +x xsync</span><br></pre></td></tr></table></figure>
-
-
-
-<p>配置ssh免密登录</p>
-<p>生成密钥</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">ssh-keygen -t rsa</span><br></pre></td></tr></table></figure>
-
-<p>然后一直敲回车</p>
-<p>复制密钥</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">ssh-copy-id hadoop101</span><br><span class="line">ssh-copy-id hadoop102</span><br><span class="line">ssh-copy-id hadoop103</span><br></pre></td></tr></table></figure>
-
-
-
-<p>配置hadoop的文件</p>
-<p>配置core-site.xml</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> <span class="variable">$HADOOP_HOME</span>/etc/hadoop</span><br><span class="line">vim core-site.xml</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="meta">&lt;?xml-stylesheet type=<span class="string">&quot;text/xsl&quot;</span> href=<span class="string">&quot;configuration.xsl&quot;</span>?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 指定NameNode的地址 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>fs.defaultFS<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hdfs://hadoop101:8020<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 指定hadoop数据的存储目录 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>hadoop.tmp.dir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>/opt/module/hadoop-3.1.3/data<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 配置HDFS网页登录使用的静态用户为hadoop --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>hadoop.http.staticuser.user<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hadoop<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>配置hdfs-site.xml</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim hdfs-site.xml</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="meta">&lt;?xml-stylesheet type=<span class="string">&quot;text/xsl&quot;</span> href=<span class="string">&quot;configuration.xsl&quot;</span>?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">	<span class="comment">&lt;!-- nn web端访问地址--&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.namenode.http-address<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hadoop101:9870<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">	<span class="comment">&lt;!-- 2nn web端访问地址--&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.namenode.secondary.http-address<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hadoop103:9868<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>配置yarn-site.xml</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim yarn-site.xml</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="meta">&lt;?xml-stylesheet type=<span class="string">&quot;text/xsl&quot;</span> href=<span class="string">&quot;configuration.xsl&quot;</span>?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 指定MR走shuffle --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.nodemanager.aux-services<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>mapreduce_shuffle<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 指定ResourceManager的地址--&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.resourcemanager.hostname<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hadoop102<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 环境变量的继承 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.nodemanager.env-whitelist<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_MAPRED_HOME<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>配置mapred-site.xml</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim mapred-site.xml</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="meta">&lt;?xml-stylesheet type=<span class="string">&quot;text/xsl&quot;</span> href=<span class="string">&quot;configuration.xsl&quot;</span>?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">	<span class="comment">&lt;!-- 指定MapReduce程序运行在Yarn上 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>mapreduce.framework.name<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>yarn<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>然后分发配置文件</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">xsync /opt/module/hadoop-3.1.3/etc/hadoop/</span><br></pre></td></tr></table></figure>
-
-<p>三台主机都查看一下配置文件是否正确修改</p>
-<p>配置workers</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim /opt/module/hadoop-3.1.3/etc/hadoop/workers</span><br></pre></td></tr></table></figure>
-
-<p>新增</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hadoop101</span><br><span class="line">hadoop102</span><br><span class="line">hadoop103</span><br></pre></td></tr></table></figure>
-
-<p>然后同步所有主机</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">xsync /opt/module/hadoop-3.1.3/etc</span><br></pre></td></tr></table></figure>
-
-<p>第一次启动需要先格式化hdfs</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">hdfs namenode -format</span><br></pre></td></tr></table></figure>
-
-<p>然后启动hdfs</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sbin/start-dfs.sh</span><br></pre></td></tr></table></figure>
-
-<p>hadoop102启动yarn</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sbin/start-yarn.sh</span><br></pre></td></tr></table></figure>
-
-<p>浏览器输入<a href="http://hadoop101:9870查看hdfs的NameNode">http://hadoop101:9870查看hdfs的NameNode</a></p>
-<p>在<a href="http://hadoop102:8088/">http://hadoop102:8088</a> 查看yarn</p>
-<p>启动&#x2F;关闭集群</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">start-dfs.sh/stop-dfs.sh</span><br><span class="line">start-yarn.sh/stop-yarn.sh</span><br></pre></td></tr></table></figure>
-
-
-
-<p>为了方便启动和关闭集群，编写脚本</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> /home/hadoop/bin</span><br><span class="line">vim myhadoop.sh</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/bash</span></span><br><span class="line"></span><br><span class="line">if [ $# -lt 1 ]</span><br><span class="line">then</span><br><span class="line">    echo &quot;No Args Input...&quot;</span><br><span class="line">    exit ;</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line">case $1 in</span><br><span class="line">&quot;start&quot;)</span><br><span class="line">        echo &quot; =================== 启动 hadoop集群 ===================&quot;</span><br><span class="line"></span><br><span class="line">        echo &quot; --------------- 启动 hdfs ---------------&quot;</span><br><span class="line">        ssh hadoop101 &quot;/opt/module/hadoop-3.1.3/sbin/start-dfs.sh&quot;</span><br><span class="line">        echo &quot; --------------- 启动 yarn ---------------&quot;</span><br><span class="line">        ssh hadoop102 &quot;/opt/module/hadoop-3.1.3/sbin/start-yarn.sh&quot;</span><br><span class="line">        echo &quot; --------------- 启动 historyserver ---------------&quot;</span><br><span class="line">        ssh hadoop101 &quot;/opt/module/hadoop-3.1.3/bin/mapred --daemon start historyserver&quot;</span><br><span class="line">;;</span><br><span class="line">&quot;stop&quot;)</span><br><span class="line">        echo &quot; =================== 关闭 hadoop集群 ===================&quot;</span><br><span class="line"></span><br><span class="line">        echo &quot; --------------- 关闭 historyserver ---------------&quot;</span><br><span class="line">        ssh hadoop101 &quot;/opt/module/hadoop-3.1.3/bin/mapred --daemon stop historyserver&quot;</span><br><span class="line">        echo &quot; --------------- 关闭 yarn ---------------&quot;</span><br><span class="line">        ssh hadoop102 &quot;/opt/module/hadoop-3.1.3/sbin/stop-yarn.sh&quot;</span><br><span class="line">        echo &quot; --------------- 关闭 hdfs ---------------&quot;</span><br><span class="line">        ssh hadoop101 &quot;/opt/module/hadoop-3.1.3/sbin/stop-dfs.sh&quot;</span><br><span class="line">;;</span><br><span class="line">*)</span><br><span class="line">    echo &quot;Input Args Error...&quot;</span><br><span class="line">;;</span><br><span class="line">esac</span><br></pre></td></tr></table></figure>
-
-<p>修改权限</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">chmod</span> +x myhadoop.sh</span><br></pre></td></tr></table></figure>
-
-<p>同理编写查看集群进程的脚本</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> /home/hadoop/bin</span><br><span class="line">vim jpsall</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/bash</span></span><br><span class="line"></span><br><span class="line">for host in hadoop101 hadoop102 hadoop103</span><br><span class="line">do</span><br><span class="line">        echo =============== $host ===============</span><br><span class="line">        ssh $host jps </span><br><span class="line">done</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+<h2 id="Linux远程登录"><a href="#Linux远程登录" class="headerlink" title="Linux远程登录"></a>Linux远程登录</h2><p>两个常用工具：Xshell(远程登录)、Xftp(远程文件传输)</p>
+<h2 id="Linux-Vi和Vim"><a href="#Linux-Vi和Vim" class="headerlink" title="Linux_Vi和Vim"></a>Linux_Vi和Vim</h2><p>三种模式</p>
+<ul>
+<li>正常模式，即默认的模式</li>
+<li>插入模式，按下i,I,o,O,a,A,r,R等任何一个字母即可进入编辑模式</li>
+<li>命令行模式 输入esc ,再输入: 即可进入 ,提供相关指令,完成读取,存盘,替换,离开vim,显示行号等的动作</li>
+</ul>
+<p><img src="https://img1.imgtp.com/2023/09/17/GcbZTD5M.png"></p>
+<p>常用的快捷键</p>
+<p><img src="https://img1.imgtp.com/2023/09/17/nBXVztZn.png"></p>
+<p>对应的键盘图</p>
+<p><img src="https://img1.imgtp.com/2023/09/17/p09Ml2Z8.png"></p>
+<h2 id="Linux开机、重启、用户登录注销"><a href="#Linux开机、重启、用户登录注销" class="headerlink" title="Linux开机、重启、用户登录注销"></a>Linux开机、重启、用户登录注销</h2><p><img src="https://img1.imgtp.com/2023/09/17/QTALVgkn.png"><img src="https://img1.imgtp.com/2023/09/17/2mohFa6g.png"></p>
+<h2 id="Linux用户管理"><a href="#Linux用户管理" class="headerlink" title="Linux用户管理"></a>Linux用户管理</h2><p><img src="https://img1.imgtp.com/2023/09/17/NYwvsOAp.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/2Z1QV8YA.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/WG42hTvs.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/iNfA8QKR.png"></p>
+<p>查询当前用户信息 who am I</p>
+<p><img src="https://img1.imgtp.com/2023/09/17/wdk45Yxg.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/wiCTQgjD.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/9qWKA5Pq.png"></p>
+<h2 id="Linux使用指令"><a href="#Linux使用指令" class="headerlink" title="Linux使用指令"></a>Linux使用指令</h2><h3 id="Linux运行级别"><a href="#Linux运行级别" class="headerlink" title="Linux运行级别"></a>Linux运行级别</h3><p><img src="https://img1.imgtp.com/2023/09/17/8IkrYi2V.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/EGzWGgVl.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/uEXUgWGZ.png"></p>
+<h2 id="Linux文件目录指令"><a href="#Linux文件目录指令" class="headerlink" title="Linux文件目录指令"></a>Linux文件目录指令</h2><p><img src="https://img1.imgtp.com/2023/09/17/QIenEvmv.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/WTnDeZME.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/hJw2CLJe.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/rtC5e2LJ.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/zdQ5gYHo.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/lbSKLV26.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/IMo3FOIw.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/TD7bRUY8.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/tHWLRUtB.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/jsMm0GK3.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/UL42zJlc.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/e5i0emkP.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/bNx1NWJm.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/TQkJ0y3I.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/8TdC2z8g.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/c91BNMHU.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/VQTqJnyw.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/qMO6H0EX.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/zWPjP7tN.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/duvlhb6V.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/DT8XeVQu.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/epuSOSt9.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/r83AwZHg.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/LOiTsWZ9.png"></p>
+<h2 id="Linux组"><a href="#Linux组" class="headerlink" title="Linux组"></a>Linux组</h2><p>Linux中，每个用户都有组，文件有三个概念（所有者、所在组、其它组）</p>
+<p><img src="https://img1.imgtp.com/2023/09/17/uD51heYt.png" alt="41"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/VPPO39VZ.png" alt="42"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/sEMZ3wdL.png" alt="43"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/b9KScCMn.png" alt="44"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/M9iH53tj.png" alt="45"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/OqfhVa5L.png" alt="46"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/IxpeceiG.png" alt="47"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/r6noTr5Y.png" alt="48"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/ygRpaL5U.png" alt="49"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/ztm2KwSr.png" alt="50"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/fEoXB19W.png" alt="51"></p>
+<h2 id="定时任务调度"><a href="#定时任务调度" class="headerlink" title="定时任务调度"></a>定时任务调度</h2><p><img src="https://img1.imgtp.com/2023/09/17/vbwenR4e.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/tYA4r8Aw.png" alt="53"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/eKeHrvTT.png" alt="54"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/00KUXaUK.png" alt="55"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/tR05rHR4.png" alt="57"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/FobWB1Li.png" alt="58"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/isY3cVKU.png" alt="59"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/Uf2sXih5.png" alt="60"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\61.png" alt="61"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\62.png" alt="62"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\63.png" alt="63"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\64.png" alt="64"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\65.png" alt="65"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\66.png" alt="66"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\67.png" alt="67"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\68.png" alt="68"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\69.png" alt="69"></p>
+<p><img src="C:\Users\hp\Desktop\Typora笔记\Linux学习笔记\70.png" alt="70"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/WVCRQgxx.png" alt="https://img1.imgtp.com/2023/09/17/WVCRQgxx.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/MV0qnvTN.png" alt="https://img1.imgtp.com/2023/09/17/MV0qnvTN.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/9HQS1wts.png" alt="https://img1.imgtp.com/2023/09/17/9HQS1wts.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/xky1TwC6.png" alt="https://img1.imgtp.com/2023/09/17/xky1TwC6.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/aBUwGeEj.png" alt="https://img1.imgtp.com/2023/09/17/aBUwGeEj.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/TWC9DAjH.png" alt="https://img1.imgtp.com/2023/09/17/TWC9DAjH.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/DiqGQyIH.png" alt="https://img1.imgtp.com/2023/09/17/DiqGQyIH.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/4RwfaMmN.png" alt="https://img1.imgtp.com/2023/09/17/4RwfaMmN.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/k315ZK6T.png" alt="https://img1.imgtp.com/2023/09/17/k315ZK6T.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/bdJ2rgOY.png" alt="https://img1.imgtp.com/2023/09/17/bdJ2rgOY.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/ajycZ3b8.png" alt="https://img1.imgtp.com/2023/09/17/ajycZ3b8.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/zg8zSxE5.png" alt="https://img1.imgtp.com/2023/09/17/zg8zSxE5.png"></p>
+<h2 id="Linux服务管理"><a href="#Linux服务管理" class="headerlink" title="Linux服务管理"></a>Linux服务管理</h2><p><img src="https://img1.imgtp.com/2023/09/17/Ofn7JZ5U.png" alt="https://img1.imgtp.com/2023/09/17/Ofn7JZ5U.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/dlrLIgrn.png" alt="https://img1.imgtp.com/2023/09/17/dlrLIgrn.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/5YUm7NhH.png" alt="https://img1.imgtp.com/2023/09/17/5YUm7NhH.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/068T0EXV.png" alt="https://img1.imgtp.com/2023/09/17/068T0EXV.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/aXdbnSDi.png" alt="https://img1.imgtp.com/2023/09/17/aXdbnSDi.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/3gmzdCoi.png" alt="https://img1.imgtp.com/2023/09/17/3gmzdCoi.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/1EDJ6DJ9.png" alt="https://img1.imgtp.com/2023/09/17/1EDJ6DJ9.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/4lOiKiut.png" alt="https://img1.imgtp.com/2023/09/17/4lOiKiut.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/By8Z0Za8.png" alt="https://img1.imgtp.com/2023/09/17/By8Z0Za8.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/dvTRVqbT.png" alt="https://img1.imgtp.com/2023/09/17/dvTRVqbT.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/x0uw4zaX.png" alt="https://img1.imgtp.com/2023/09/17/x0uw4zaX.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/fMYyu93G.png" alt="https://img1.imgtp.com/2023/09/17/fMYyu93G.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/kqdskMJF.png" alt="https://img1.imgtp.com/2023/09/17/kqdskMJF.png"></p>
+<h2 id="Linux的Shell编程"><a href="#Linux的Shell编程" class="headerlink" title="Linux的Shell编程"></a>Linux的Shell编程</h2><p><img src="https://img1.imgtp.com/2023/09/17/dG6EmWa6.png" alt="https://img1.imgtp.com/2023/09/17/dG6EmWa6.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/V4EBHVSe.png" alt="https://img1.imgtp.com/2023/09/17/V4EBHVSe.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/sERUjXA1.png" alt="https://img1.imgtp.com/2023/09/17/sERUjXA1.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/dQA5NgPj.png" alt="https://img1.imgtp.com/2023/09/17/dQA5NgPj.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/SMRRThRz.png" alt="https://img1.imgtp.com/2023/09/17/SMRRThRz.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/BXzcZvkl.png" alt="https://img1.imgtp.com/2023/09/17/BXzcZvkl.png"></p>
+<p><img src="https://img1.imgtp.com/2023/09/17/d9aERet8.png" alt="https://img1.imgtp.com/2023/09/17/d9aERet8.png"></p>
 ]]></content>
   </entry>
 </search>
