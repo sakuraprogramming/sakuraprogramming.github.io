@@ -175,6 +175,1033 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/23/Redis%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="sakura">
+      <meta itemprop="description" content="大数据废物的博客之旅">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Sakura的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/23/Redis%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/" class="post-title-link" itemprop="url">Redis快速入门</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-04-23 10:40:57 / 修改时间：10:42:50" itemprop="dateCreated datePublished" datetime="2024-04-23T10:40:57+08:00">2024-04-23</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="Redis快速入门"><a href="#Redis快速入门" class="headerlink" title="Redis快速入门"></a>Redis快速入门</h2><h3 id="Redis介绍"><a href="#Redis介绍" class="headerlink" title="Redis介绍"></a>Redis介绍</h3><p>Redis是一个键值数据库，内存数据库，属于AP模型（CAP理论模型）</p>
+<p>有四种模式可以部署</p>
+<ul>
+<li>单机模式</li>
+<li>主从模式</li>
+<li>哨兵模式</li>
+<li>集群模式</li>
+</ul>
+<p>Redis内部使用自己设计的一种文本协议进行客户端与服务端之间的通信-RESP（基于TCP协议实现，采用请求&#x2F;响应模型）</p>
+<p>在集群模式下，Redis会对存储数据进行切片（利用哈希槽进行分片，Redis cluster划分了16384个槽，一个槽对应一个节点，存数据时会先算哈希值，具体来说就是在存取key时，Redis会使用CRC16算法得出一个结果，再对16384取余计算出槽位置)</p>
+<p>Redis的优势</p>
+<ul>
+<li>基于内存</li>
+<li>单线程模型</li>
+<li>多路复用IO模型，就是多个线程的IO注册到同一个管道上，这个管道会统一和内核进行交互，当管道中的某一个请求需要的数据准备好之后，进程就把对应的数据拷贝到用户空间中。（分为三种：select、poll、epoll）</li>
+<li>高效的数据结构（基本数据结构和高级数据结构）<ul>
+<li>字符串 String</li>
+<li>列表 List</li>
+<li>集合 Set</li>
+<li>有序集合 Zset</li>
+<li>哈希 Hash</li>
+<li>流 Stream</li>
+<li>位图 Bitmap </li>
+<li>Geospatial</li>
+<li>HyperLogLog</li>
+</ul>
+</li>
+<li>多线程的引入（Redis6.0），只是接收网络通信使用了多线程，数据的读写操作还是使用的单线程</li>
+</ul>
+<h3 id="Redis安装（Ubuntu）"><a href="#Redis安装（Ubuntu）" class="headerlink" title="Redis安装（Ubuntu）"></a>Redis安装（Ubuntu）</h3><p>更新apt</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt update</span><br><span class="line">sudo apt upgrade</span><br></pre></td></tr></table></figure>
+
+<p>安装Redis</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install redis-server</span><br></pre></td></tr></table></figure>
+
+<p>查看Redis版本</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli --version</span><br></pre></td></tr></table></figure>
+
+<p>查看运行状态</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">systemctl status redis</span><br></pre></td></tr></table></figure>
+
+<p>配置远程连接</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sudo nano /etc/redis/redis.conf </span><br><span class="line"><span class="comment"># #取消注释requirepass 启动密码认证，并设置访问密码</span></span><br><span class="line">requirepass your-pass-word</span><br><span class="line"><span class="comment"># 以守护进程运行Redis </span></span><br><span class="line">daemonize <span class="built_in">yes</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>ps:需要注意的是，Redis属于键值对数据库，然后键类型是支持所有二进制序列，但是一般都是使用字符串，空字符串也是一个有效的key值，值的类型就是五种基本数据类型加上高级数据类型</p>
+<h3 id="命令行操作"><a href="#命令行操作" class="headerlink" title="命令行操作"></a>命令行操作</h3><p>Redis默认为16个库</p>
+<p>切换库</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> db</span><br></pre></td></tr></table></figure>
+
+<p>删除库所有数据</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">flushdb</span><br></pre></td></tr></table></figure>
+
+<p>查看所有key</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">keys *</span><br></pre></td></tr></table></figure>
+
+<p>返回存在的key的数量</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">exists key [key...]</span><br></pre></td></tr></table></figure>
+
+<p>Redis可以给key设置过期时间expire &amp;ttl</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">expire key 30</span><br><span class="line">ttl key</span><br></pre></td></tr></table></figure>
+
+<p>返回key存储的value数据类型</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">type</span> key</span><br></pre></td></tr></table></figure>
+
+<p>删除key</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">del key</span><br></pre></td></tr></table></figure>
+
+<p>字符串 String</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 设置</span></span><br><span class="line"><span class="built_in">set</span> key value</span><br><span class="line"><span class="comment"># 获取</span></span><br><span class="line">get key</span><br><span class="line"><span class="comment"># 对数字类型加1</span></span><br><span class="line">incr key</span><br><span class="line"><span class="comment"># 对数字类型减1</span></span><br><span class="line">decr key</span><br><span class="line"><span class="comment"># 追加</span></span><br><span class="line">append key value</span><br><span class="line"><span class="comment"># 获取value总长度</span></span><br><span class="line">strlen key</span><br><span class="line"><span class="comment"># 截取value</span></span><br><span class="line">getrange key start end</span><br><span class="line"><span class="comment"># 替换value</span></span><br><span class="line">setrange key offset value</span><br><span class="line"><span class="comment"># 获取多个和设置多个</span></span><br><span class="line">mset key1 value1 key2 value2</span><br><span class="line">mget key1 key2</span><br></pre></td></tr></table></figure>
+
+<p>哈希 Hash，这里可以这么理解，就相当于创建一个哈希表，键key相当于表的名字，field和value表示哈希表的槽位和数据值</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 新建</span></span><br><span class="line">hset key field value</span><br><span class="line"><span class="comment"># 获取</span></span><br><span class="line">hget key field</span><br><span class="line"><span class="comment"># 设置多个和获取多个</span></span><br><span class="line">hmset key field1 value1 field2 value2</span><br><span class="line">hmget key field1 field2</span><br><span class="line"><span class="comment"># 获取全部</span></span><br><span class="line">hgetall key</span><br><span class="line"><span class="comment"># 删除 hdel</span></span><br><span class="line">hdel key field</span><br><span class="line"><span class="comment"># 获取所有field域</span></span><br><span class="line">hkeys key</span><br><span class="line"><span class="comment"># 获取所有值</span></span><br><span class="line">hvals key</span><br><span class="line"><span class="comment"># 判断filed是否存在</span></span><br><span class="line">hexists key field</span><br></pre></td></tr></table></figure>
+
+<p>列表 List</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 添加 lpush 和rpush</span></span><br><span class="line">lpush key value[value..]</span><br><span class="line">rpush key value[value]</span><br><span class="line"><span class="comment"># 获取lrange, 负数表示倒数</span></span><br><span class="line">lrange key start stop</span><br><span class="line"><span class="comment"># 获取指定index元素</span></span><br><span class="line">lindex key index</span><br><span class="line"><span class="comment"># 获取列表长度 llen</span></span><br><span class="line">llen key</span><br><span class="line"><span class="comment"># 按值移除元素 lrem</span></span><br><span class="line">lrem key count value</span><br><span class="line"><span class="comment"># 修改某个值 lset</span></span><br><span class="line">lset key index value</span><br><span class="line"><span class="comment"># 插入元素到指定值之前或之后 linsert</span></span><br><span class="line">linsert key BEFORE|AFTER pivot value</span><br></pre></td></tr></table></figure>
+
+<p>集合Set</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 添加 sadd</span></span><br><span class="line">sadd key member</span><br><span class="line"><span class="comment"># 获取元素 smembers</span></span><br><span class="line">smembers key</span><br><span class="line"><span class="comment"># 判断元素是否存在 sismember</span></span><br><span class="line">sismember key member</span><br><span class="line"><span class="comment"># 获取集合元素个数 scard</span></span><br><span class="line">scard key</span><br><span class="line"><span class="comment"># 删除集合key中的一个或多个元素 srem</span></span><br><span class="line">srem key member</span><br><span class="line"><span class="comment"># 随机删除元素spop</span></span><br><span class="line">spop key [count]</span><br><span class="line"><span class="comment"># 随机取元素 srandmember</span></span><br><span class="line">srandmember key [count]</span><br></pre></td></tr></table></figure>
+
+<p>有序集合 Zset</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 添加zadd</span></span><br><span class="line">zadd key score member [score member ..]</span><br><span class="line"><span class="comment"># 查询 zrange,WITHSCORES表示是否同时返回score和member</span></span><br><span class="line">zrange key start stop [WITHSCORES]</span><br><span class="line"><span class="comment"># 区间查询 zrevrange,返回值按照score从大到小排序</span></span><br><span class="line">zrevrange key start stop [WITHSCORES]</span><br><span class="line"><span class="comment"># 删除元素 zrem</span></span><br><span class="line">zrem key member [member]</span><br><span class="line"><span class="comment"># 获取元素个数zcard</span></span><br><span class="line">zcard key</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+<h3 id="Java操作Redis"><a href="#Java操作Redis" class="headerlink" title="Java操作Redis"></a>Java操作Redis</h3><p>工具：IDEA</p>
+<p>安装依赖，使用jedis操作</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>redis.clients<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>jedis<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.9.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>初始化对象</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Before</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">init</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.jedis = <span class="keyword">new</span> <span class="title class_">Jedis</span>(<span class="string">&quot;192.168.10.129&quot;</span>, <span class="number">6379</span>);</span><br><span class="line">        jedis.auth(<span class="string">&quot;12345678&quot;</span>);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后就可以使用jedis对Redis进行操作了</p>
+<p>字符串String</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setKey</span><span class="params">()</span> &#123;</span><br><span class="line">        jedis.set(<span class="string">&quot;test&quot;</span>, <span class="string">&quot;test&quot;</span>);</span><br><span class="line">        System.out.println(jedis.get(<span class="string">&quot;test&quot;</span>));</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line"><span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">deleteKey</span><span class="params">()</span> &#123;</span><br><span class="line">        jedis.del(<span class="string">&quot;test&quot;</span>);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>列表List</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testList</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// 添加数据</span></span><br><span class="line">        List&lt;String&gt; temp = Arrays.asList(<span class="string">&quot;1&quot;</span>, <span class="string">&quot;2&quot;</span>, <span class="string">&quot;3&quot;</span>);</span><br><span class="line">        <span class="type">Gson</span> <span class="variable">gson</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Gson</span>();</span><br><span class="line">        <span class="type">String</span> <span class="variable">s</span> <span class="operator">=</span> gson.toJson(temp);</span><br><span class="line">        jedis.rpush(<span class="string">&quot;testList&quot;</span>, s);</span><br><span class="line">        jedis.lpush(<span class="string">&quot;testList&quot;</span>, <span class="string">&quot;sakura&quot;</span>);</span><br><span class="line">        List&lt;String&gt; test = jedis.lrange(<span class="string">&quot;testList&quot;</span>, <span class="number">0</span>, -<span class="number">1</span>);</span><br><span class="line">        System.out.println(test);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>集合Set</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testSet</span><span class="params">()</span> &#123;</span><br><span class="line">    jedis.sadd(<span class="string">&quot;testSet&quot;</span>, <span class="string">&quot;1&quot;</span>, <span class="string">&quot;2&quot;</span>, <span class="string">&quot;2&quot;</span>);</span><br><span class="line">    System.out.println(jedis.smembers(<span class="string">&quot;testSet&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>有序集合Zset</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testZSet</span><span class="params">()</span> &#123;</span><br><span class="line">        HashMap&lt;String, Double&gt; scoreMap = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;String, Double&gt;();</span><br><span class="line">        scoreMap.put(<span class="string">&quot;xiaoming&quot;</span>, <span class="number">70.0</span>);</span><br><span class="line">        scoreMap.put(<span class="string">&quot;xiaowang&quot;</span>, <span class="number">100.0</span>);</span><br><span class="line">        scoreMap.put(<span class="string">&quot;xiaohong&quot;</span>, <span class="number">88.0</span>);</span><br><span class="line">        scoreMap.put(<span class="string">&quot;xiaoli&quot;</span>, <span class="number">60.0</span>);</span><br><span class="line">        scoreMap.put(<span class="string">&quot;zhangsan&quot;</span>, <span class="number">58.0</span>);</span><br><span class="line">        jedis.zadd(<span class="string">&quot;math&quot;</span>, scoreMap);</span><br><span class="line">        <span class="comment">// 查看scoreMap的形式</span></span><br><span class="line">        System.out.println(<span class="string">&quot;查看scoreMap的形式：&quot;</span> + scoreMap);</span><br><span class="line">        <span class="comment">// 0 第0个元素，-1最后一个元素</span></span><br><span class="line">        System.out.println(<span class="string">&quot;返回math全部元素：&quot;</span> + jedis.zrange(<span class="string">&quot;math&quot;</span>, <span class="number">0</span>, -<span class="number">1</span>));</span><br><span class="line">        System.out.println(<span class="string">&quot;查看key有多少个元素：&quot;</span> + jedis.zcard(<span class="string">&quot;math&quot;</span>));</span><br><span class="line">        <span class="comment">// 移除 xiaoli 这个元素</span></span><br><span class="line">        System.out.println(<span class="string">&quot;移除xiaoli 这个元素&quot;</span>);</span><br><span class="line">        jedis.zrem(<span class="string">&quot;math&quot;</span>, <span class="string">&quot;xiaoli&quot;</span>);</span><br><span class="line">        <span class="comment">// -inf 负无穷  inf 正无穷，即从小到大排序</span></span><br><span class="line">        System.out.println(<span class="string">&quot;按照递增顺序，返回math全部的元素（含成绩）：&quot;</span> + jedis.zrangeByScoreWithScores(<span class="string">&quot;math&quot;</span>, <span class="string">&quot;-inf&quot;</span>, <span class="string">&quot;inf&quot;</span>));</span><br><span class="line">        System.out.println(<span class="string">&quot;统计math集合，成绩在[80,100]之间的元素个数：&quot;</span> + jedis.zcount(<span class="string">&quot;math&quot;</span>, <span class="number">80</span>, <span class="number">100</span>));</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>哈希Hash</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testHash</span><span class="params">()</span> &#123;</span><br><span class="line">        jedis.hset(<span class="string">&quot;testHash&quot;</span>, <span class="string">&quot;testField&quot;</span>, <span class="string">&quot;testValue&quot;</span>);</span><br><span class="line">        System.out.println(jedis.hget(<span class="string">&quot;testHash&quot;</span>, <span class="string">&quot;testField&quot;</span>));</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+<p>完整的代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.sakura.test;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> com.google.gson.Gson;</span><br><span class="line"><span class="keyword">import</span> com.nimbusds.jose.shaded.json.JSONUtil;</span><br><span class="line"><span class="keyword">import</span> org.junit.Before;</span><br><span class="line"><span class="keyword">import</span> org.junit.Test;</span><br><span class="line"><span class="keyword">import</span> redis.clients.jedis.Jedis;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.util.Arrays;</span><br><span class="line"><span class="keyword">import</span> java.util.HashMap;</span><br><span class="line"><span class="keyword">import</span> java.util.List;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestRedis</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Jedis jedis;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Before</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">init</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.jedis = <span class="keyword">new</span> <span class="title class_">Jedis</span>(<span class="string">&quot;192.168.10.129&quot;</span>, <span class="number">6379</span>);</span><br><span class="line">        jedis.auth(<span class="string">&quot;12345678&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setKey</span><span class="params">()</span> &#123;</span><br><span class="line">        jedis.set(<span class="string">&quot;test&quot;</span>, <span class="string">&quot;test&quot;</span>);</span><br><span class="line">        System.out.println(jedis.get(<span class="string">&quot;test&quot;</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">deleteKey</span><span class="params">()</span> &#123;</span><br><span class="line">        jedis.del(<span class="string">&quot;test&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testList</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// 添加数据</span></span><br><span class="line">        List&lt;String&gt; temp = Arrays.asList(<span class="string">&quot;1&quot;</span>, <span class="string">&quot;2&quot;</span>, <span class="string">&quot;3&quot;</span>);</span><br><span class="line">        <span class="type">Gson</span> <span class="variable">gson</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Gson</span>();</span><br><span class="line">        <span class="type">String</span> <span class="variable">s</span> <span class="operator">=</span> gson.toJson(temp);</span><br><span class="line">        jedis.rpush(<span class="string">&quot;testList&quot;</span>, s);</span><br><span class="line">        jedis.lpush(<span class="string">&quot;testList&quot;</span>, <span class="string">&quot;sakura&quot;</span>);</span><br><span class="line">        List&lt;String&gt; test = jedis.lrange(<span class="string">&quot;testList&quot;</span>, <span class="number">0</span>, -<span class="number">1</span>);</span><br><span class="line">        System.out.println(test);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testSet</span><span class="params">()</span> &#123;</span><br><span class="line">        jedis.sadd(<span class="string">&quot;testSet&quot;</span>, <span class="string">&quot;1&quot;</span>, <span class="string">&quot;2&quot;</span>, <span class="string">&quot;2&quot;</span>);</span><br><span class="line">        System.out.println(jedis.smembers(<span class="string">&quot;testSet&quot;</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testZSet</span><span class="params">()</span> &#123;</span><br><span class="line">        HashMap&lt;String, Double&gt; scoreMap = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;String, Double&gt;();</span><br><span class="line">        scoreMap.put(<span class="string">&quot;xiaoming&quot;</span>, <span class="number">70.0</span>);</span><br><span class="line">        scoreMap.put(<span class="string">&quot;xiaowang&quot;</span>, <span class="number">100.0</span>);</span><br><span class="line">        scoreMap.put(<span class="string">&quot;xiaohong&quot;</span>, <span class="number">88.0</span>);</span><br><span class="line">        scoreMap.put(<span class="string">&quot;xiaoli&quot;</span>, <span class="number">60.0</span>);</span><br><span class="line">        scoreMap.put(<span class="string">&quot;zhangsan&quot;</span>, <span class="number">58.0</span>);</span><br><span class="line">        jedis.zadd(<span class="string">&quot;math&quot;</span>, scoreMap);</span><br><span class="line">        <span class="comment">// 查看scoreMap的形式</span></span><br><span class="line">        System.out.println(<span class="string">&quot;查看scoreMap的形式：&quot;</span> + scoreMap);</span><br><span class="line">        <span class="comment">// 0 第0个元素，-1最后一个元素</span></span><br><span class="line">        System.out.println(<span class="string">&quot;返回math全部元素：&quot;</span> + jedis.zrange(<span class="string">&quot;math&quot;</span>, <span class="number">0</span>, -<span class="number">1</span>));</span><br><span class="line">        System.out.println(<span class="string">&quot;查看key有多少个元素：&quot;</span> + jedis.zcard(<span class="string">&quot;math&quot;</span>));</span><br><span class="line">        <span class="comment">// 移除 xiaoli 这个元素</span></span><br><span class="line">        System.out.println(<span class="string">&quot;移除xiaoli 这个元素&quot;</span>);</span><br><span class="line">        jedis.zrem(<span class="string">&quot;math&quot;</span>, <span class="string">&quot;xiaoli&quot;</span>);</span><br><span class="line">        <span class="comment">// -inf 负无穷  inf 正无穷，即从小到大排序</span></span><br><span class="line">        System.out.println(<span class="string">&quot;按照递增顺序，返回math全部的元素（含成绩）：&quot;</span> + jedis.zrangeByScoreWithScores(<span class="string">&quot;math&quot;</span>, <span class="string">&quot;-inf&quot;</span>, <span class="string">&quot;inf&quot;</span>));</span><br><span class="line">        System.out.println(<span class="string">&quot;统计math集合，成绩在[80,100]之间的元素个数：&quot;</span> + jedis.zcount(<span class="string">&quot;math&quot;</span>, <span class="number">80</span>, <span class="number">100</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testHash</span><span class="params">()</span> &#123;</span><br><span class="line">        jedis.hset(<span class="string">&quot;testHash&quot;</span>, <span class="string">&quot;testField&quot;</span>, <span class="string">&quot;testValue&quot;</span>);</span><br><span class="line">        System.out.println(jedis.hget(<span class="string">&quot;testHash&quot;</span>, <span class="string">&quot;testField&quot;</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/23/MongoDB%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="sakura">
+      <meta itemprop="description" content="大数据废物的博客之旅">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Sakura的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/23/MongoDB%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/" class="post-title-link" itemprop="url">MongoDB快速入门</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-04-23 10:40:44 / 修改时间：10:42:39" itemprop="dateCreated datePublished" datetime="2024-04-23T10:40:44+08:00">2024-04-23</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="MongoDB快速入门"><a href="#MongoDB快速入门" class="headerlink" title="MongoDB快速入门"></a>MongoDB快速入门</h2><h3 id="MongoDB安装（Ubuntu）apt模式安装"><a href="#MongoDB安装（Ubuntu）apt模式安装" class="headerlink" title="MongoDB安装（Ubuntu）apt模式安装"></a>MongoDB安装（Ubuntu）apt模式安装</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install gnupg curl</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | </span><br><span class="line">   sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg </span><br><span class="line">   --dearmor</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse&quot;</span> | sudo <span class="built_in">tee</span> /etc/apt/sources.list.d/mongodb-org-7.0.list</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get update</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install -y mongodb-org</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mongod -version</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 开启mongd</span></span><br><span class="line">sudo systemctl start mongod</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看mongodb状态 active表示正在运行</span></span><br><span class="line">sudo systemctl status mongod</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 设置mongodb可以开机自启动</span></span><br><span class="line">sudo systemctl <span class="built_in">enable</span> mongod</span><br></pre></td></tr></table></figure>
+
+<p>停止</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl stop mongod</span><br></pre></td></tr></table></figure>
+
+<p>重启</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl restart mongod</span><br></pre></td></tr></table></figure>
+
+<p>为了让外网可以访问到MongoDB，需要修改对应的配置文件</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/mongod.conf</span><br><span class="line"><span class="comment"># 把bindIP的值修改为0.0.0.0</span></span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是，这样子的设置会导致非常不安全，如果只是为了学习当然无所谓，不过一般还是建议设置一下密码，（这一步可选）</p>
+<p>先在配置文件启动鉴权模式</p>
+<p>然后使用mongosh进入命令行模式</p>
+<p>然后给对应的数据库创建用户（我这里统一用户名就是root，密码就是sql2008）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">use <span class="built_in">test</span></span><br><span class="line">db.createUser(&#123;user:<span class="string">&quot;root&quot;</span>,<span class="built_in">pwd</span>:<span class="string">&quot;sql2008&quot;</span>,roles:[&#123;role:<span class="string">&quot;readWrite&quot;</span>,db:<span class="string">&quot;test&quot;</span>&#125;]&#125;)</span><br></pre></td></tr></table></figure>
+
+<h3 id="基本操作方法"><a href="#基本操作方法" class="headerlink" title="基本操作方法"></a>基本操作方法</h3><p>在进行实际操作之前，我们需要先了解一下MongoDB的基础数据模型是怎么样的</p>
+<p>最基础的部分主要包括：</p>
+<ul>
+<li>数据库 database或者db</li>
+<li>集合collection（也可以叫做表）</li>
+<li>集合的一条记录 document</li>
+<li>记录当中的字段 field</li>
+</ul>
+<p>可以简单的理解为一个JSON数组，MongoDB存储主要是采用了Bson（Binary JSON）的形式存储</p>
+<p><img src="D:\roming\Typora\typora-user-images\image-20240417143053001.png" alt="image-20240417143053001"></p>
+<p>命令行模式</p>
+<p>切换到数据库，如果没有则会新建</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">use <span class="built_in">test</span></span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是，如果开启了权限校验，就需要先登录(如果没有开启则可以跳过这一步)</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.auth(<span class="string">&quot;root&quot;</span>,<span class="string">&quot;sql2008&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>默认情况下数据库当中没有任何集合，我们新建一个集合</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">show collections</span><br><span class="line">db.createCollection(<span class="string">&quot;teacher&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>然后在对这个集合插入一条数据或多条</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">db.teacher.insertOne(&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;sakura&quot;</span>&#125;)</span><br><span class="line">db.teacher.insertMany([&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;sakura&quot;</span>&#125;,&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;test&quot;</span>&#125;])</span><br></pre></td></tr></table></figure>
+
+<p>查看集合数据</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.teacher.find()</span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是MongoDB里面也有主键的概念，就是它默认会给你添加一个”_id”字段，然后生成一个唯一标识符，但是如果在插入时手动的指定了”__id”的值，就必须保证这个值是唯一的不然插入就会失败</p>
+<p>更新数据，MongoDB的更新操作可以支持多种形式的更新，比如只更新第一条匹配到的记录，或者更新所有匹配到的记录、如果不存在就当新记录插入集合等，具体实现可以通过参数实现</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.teacher.updateOne(&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;sakura0&quot;</span>&#125;,&#123;<span class="variable">$set</span>:&#123;<span class="string">&quot;age&quot;</span>:10&#125;&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>删除 deleteOne、deleteMany（与插入类似）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.teacher.deleteOne(&#123;<span class="string">&quot;name&quot;</span>:<span class="string">&quot;sakura&quot;</span>&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>还有就是删除整个集合</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dp.teacher.drop()</span><br></pre></td></tr></table></figure>
+
+<p>删除整个数据库</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.dropDatabase()</span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是，这里的drop删除，更加准确的理解应该是清除，它只是把记录和数据全都删除了，但是删除对象的本身还是存在的，比如drop删除整个集合，集合里面一条记录都没有了，但这个集合本身还是存在的。</p>
+<p>编程模式，以Java为例</p>
+<p>开发工具：idea（推荐）</p>
+<p>如果不会有idea的话，建议看一下下面这篇文章，快速入门</p>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/469563500">https://zhuanlan.zhihu.com/p/469563500</a></p>
+<p>首先需要强调的是，MongoDB一定要先保证外网可以访问</p>
+<p>为了让外网可以访问到MongoDB，需要修改对应的配置文件</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/mongod.conf</span><br><span class="line"><span class="comment"># 把bindIP的值修改为0.0.0.0</span></span><br></pre></td></tr></table></figure>
+
+<p>然后就是新建一个maven项目，导入对应的依赖，</p>
+<p>tips：一般maven依赖都可以去中央仓库搜索：<a target="_blank" rel="noopener" href="https://mvnrepository.com/">https://mvnrepository.com/</a></p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.mongodb<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>mongo-java-driver<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.12.10<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>这种类型的第三方依赖一般都是会提供给你一个客户端对象，让你可以去操作MongoDB</p>
+<p>所以我们要做的就是把配置换成自己的，初始化一个自己的客户端对象，然后进行后续操作</p>
+<p>第一步：</p>
+<p>初始化客户端对象,这里我写了一个工具类用于统一的管理</p>
+<p>为了方便管理对应的数据库配置（比如数据库的IP地址、用户名和密码，要访问的数据库），我这里将其统一写到了配置文件当中，具体做法就是在src&#x2F;main路径下新建一个resources资源目录，然后新建一个配置文件mongofb.properties</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">host</span>=<span class="string">192.168.10.129</span></span><br><span class="line"><span class="attr">port</span>=<span class="string">27017</span></span><br><span class="line"><span class="attr">dbname</span>=<span class="string">test</span></span><br><span class="line"><span class="attr">password</span>=<span class="string">sql2008</span></span><br><span class="line"><span class="attr">username</span>=<span class="string">root</span></span><br></pre></td></tr></table></figure>
+
+<p>然后读取该配置文件初始化对应的客户端对象</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MongoUtils</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> Properties properties;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> MongoDatabase mongoDatabase;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> InputStream stream;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> String host;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">int</span> port;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> String dbname;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> String password;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> String username;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//创建一个静态代码块，用于初始化工具类的静态变量，该静态代码块在类加载过程中的初始化阶段执行，并且只执行一次</span></span><br><span class="line">    <span class="keyword">static</span> &#123;</span><br><span class="line">        <span class="comment">//判断properties集合对象是否为空，为空则创建一个集合对象</span></span><br><span class="line">        <span class="keyword">if</span> (properties == <span class="literal">null</span>) &#123;</span><br><span class="line">            properties = <span class="keyword">new</span> <span class="title class_">Properties</span>();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * 由于我们会调用load方法，而load方法低层抛出了一个IOException异常，此异常为编译时期异常所以，</span></span><br><span class="line"><span class="comment">         * 我们调用load方法时，需要处理低层抛过来的异常*/</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">//创建一个InputStream字节输入流对象，用于接收mongodb.properties配置文件中的配置参数</span></span><br><span class="line">            stream = MongoUtils.class.getClassLoader().getResourceAsStream(<span class="string">&quot;mongodb.properties&quot;</span>);</span><br><span class="line">            <span class="comment">//properties集合对象调用load()方法，将配置参数加载到properties集合中</span></span><br><span class="line">            properties.load(stream);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(e);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//根据mongodb.properties配置文件中的key，获取value值</span></span><br><span class="line">        host = properties.getProperty(<span class="string">&quot;host&quot;</span>);</span><br><span class="line">        port = Integer.parseInt(properties.getProperty(<span class="string">&quot;port&quot;</span>));</span><br><span class="line">        dbname = properties.getProperty(<span class="string">&quot;dbname&quot;</span>);</span><br><span class="line">        password = properties.getProperty(<span class="string">&quot;password&quot;</span>);</span><br><span class="line">        username = properties.getProperty(<span class="string">&quot;username&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//定义一个getMongoClient()方法，用于获取MOngoDB数据库的连接对象</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> MongoClient <span class="title function_">getMongoClient</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">addr</span> <span class="operator">=</span> <span class="string">&quot;mongodb://&quot;</span> + username + <span class="string">&quot;:&quot;</span> + password + <span class="string">&quot;@&quot;</span> + host + <span class="string">&quot;:&quot;</span> + port;</span><br><span class="line">        <span class="type">MongoClient</span> <span class="variable">mongoClient</span> <span class="operator">=</span> MongoClients.create(addr);</span><br><span class="line">        <span class="keyword">return</span> mongoClient;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> MongoDatabase <span class="title function_">getMongoDao</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">addr</span> <span class="operator">=</span> <span class="string">&quot;mongodb://&quot;</span> + username + <span class="string">&quot;:&quot;</span> + password + <span class="string">&quot;@&quot;</span> + host + <span class="string">&quot;:&quot;</span> + port;</span><br><span class="line">        <span class="type">MongoClient</span> <span class="variable">mongoClient</span> <span class="operator">=</span> MongoClients.create(addr);</span><br><span class="line">        <span class="keyword">return</span> mongoClient.getDatabase(dbname);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>然后就是针对基础的API进行使用，在下面我只列出了最基础的实现，增删改查的基础实现，如果有更精细化的要求，建议阅读官方文档：</p>
+<p><a target="_blank" rel="noopener" href="https://mongodb.github.io/mongo-java-driver/3.0/driver/getting-started/quick-tour/">https://mongodb.github.io/mongo-java-driver/3.0/driver/getting-started/quick-tour/</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">TestMongoDB</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> MongoDatabase mongoDao;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> MongoClient mongoClient;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Before</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">init</span><span class="params">()</span> &#123;</span><br><span class="line">        mongoDao = MongoUtils.getMongoDao();</span><br><span class="line">        mongoClient = MongoUtils.getMongoClient();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 查看数据库</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">showDBs</span><span class="params">()</span> &#123;</span><br><span class="line">        MongoIterable&lt;String&gt; strings = mongoClient.listDatabaseNames();</span><br><span class="line">        <span class="keyword">for</span> (String string : strings) &#123;</span><br><span class="line">            System.out.println(string);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 查看所有集合</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">listCollections</span><span class="params">()</span> &#123;</span><br><span class="line">        ListCollectionsIterable&lt;Document&gt; documents = mongoDao.listCollections();</span><br><span class="line">        <span class="keyword">for</span> (Document document : documents) &#123;</span><br><span class="line">            System.out.println(document);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 创建集合</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">createCollection</span><span class="params">()</span> &#123;</span><br><span class="line">        mongoDao.createCollection(<span class="string">&quot;test_collection&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 插入数据到集合</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">insertOne</span><span class="params">()</span> &#123;</span><br><span class="line">        MongoCollection&lt;Document&gt; test = mongoDao.getCollection(<span class="string">&quot;test&quot;</span>);</span><br><span class="line">        <span class="type">Document</span> <span class="variable">one</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Document</span>();</span><br><span class="line">        one.put(<span class="string">&quot;name&quot;</span>, <span class="string">&quot;sakura&quot;</span>);</span><br><span class="line">        one.put(<span class="string">&quot;age&quot;</span>, <span class="number">18</span>);</span><br><span class="line">        test.insertOne(one);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 删除</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">deleteOne</span><span class="params">()</span> &#123;</span><br><span class="line">        MongoCollection&lt;Document&gt; test = mongoDao.getCollection(<span class="string">&quot;test&quot;</span>);</span><br><span class="line">        test.deleteOne(Filters.eq(<span class="string">&quot;name&quot;</span>, <span class="string">&quot;sakura&quot;</span>));</span><br><span class="line">        <span class="comment">// 删除所有符合匹配条件的数据</span></span><br><span class="line">        <span class="comment">// test.deleteMany(Filters.eq(&quot;name&quot;, &quot;sakura&quot;));</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 修改记录document</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">update</span><span class="params">()</span> &#123;</span><br><span class="line">        MongoCollection&lt;Document&gt; test = mongoDao.getCollection(<span class="string">&quot;test&quot;</span>);</span><br><span class="line">        test.updateOne(Filters.eq(<span class="string">&quot;name&quot;</span>, <span class="string">&quot;sakura&quot;</span>)</span><br><span class="line">                , <span class="keyword">new</span> <span class="title class_">Document</span>(<span class="string">&quot;$set&quot;</span>, <span class="keyword">new</span> <span class="title class_">Document</span>(<span class="string">&quot;age&quot;</span>, <span class="number">20</span>)));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">listDocument</span><span class="params">()</span> &#123;</span><br><span class="line">        MongoCollection&lt;Document&gt; test = mongoDao.getCollection(<span class="string">&quot;test&quot;</span>);</span><br><span class="line">        FindIterable&lt;Document&gt; documents = test.find();</span><br><span class="line">        <span class="keyword">for</span> (Document document : documents) &#123;</span><br><span class="line">            System.out.println(document);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/23/hbase%E5%AE%89%E8%A3%85/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="sakura">
+      <meta itemprop="description" content="大数据废物的博客之旅">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Sakura的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/23/hbase%E5%AE%89%E8%A3%85/" class="post-title-link" itemprop="url">hbase安装</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-04-23 10:40:27 / 修改时间：10:42:27" itemprop="dateCreated datePublished" datetime="2024-04-23T10:40:27+08:00">2024-04-23</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>下载HBASE到&#x2F;usr&#x2F;local</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /usr/local</span><br><span class="line">wget https://mirrors.tuna.tsinghua.edu.cn/apache/hbase/2.4.17/hbase-2.4.17-bin.tar.gz</span><br></pre></td></tr></table></figure>
+
+<p>解压 </p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -zxvf hbase-2.x.x-bin.tar.gz</span><br></pre></td></tr></table></figure>
+
+<h2 id="单机配置"><a href="#单机配置" class="headerlink" title="单机配置"></a><strong>单机配置</strong></h2><p>修改&#x2F;usr&#x2F;local&#x2F;hbase&#x2F;conf&#x2F;hbase-env.sh 添加以下内容</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">export JAVA_HOME=/usr/lib/jvm/jdk1.8.0_241 # 对应的java路径</span><br><span class="line"></span><br><span class="line">export HBASE_MANAGES_ZK=true</span><br></pre></td></tr></table></figure>
+
+<p>编辑完成后使用source使修改生效</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> hbase-env.sh</span><br></pre></td></tr></table></figure>
+
+<p>编辑&#x2F;etc&#x2F;profile</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> ~</span><br><span class="line">sudo vim /etc/profile</span><br></pre></td></tr></table></figure>
+
+<p>添加以下内容</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">export HBASE_HOME=/usr/local/hbase    </span><br><span class="line">export PATH=$PATH:$HBASE_HOME/sbin:$HBASE_HOME/bin</span><br></pre></td></tr></table></figure>
+
+<p>使用source命令生效</p>
+ <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> /etc/profile</span><br></pre></td></tr></table></figure>
+
+<p>修改&#x2F;usr&#x2F;local&#x2F;hbase&#x2F;conf&#x2F;hbase-site.xml</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.cluster.distributed<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">value</span>&gt;</span>false<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.tmp.dir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">value</span>&gt;</span>./tmp<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.unsafe.stream.capability.enforce<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">value</span>&gt;</span>false<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">   <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.rootdir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"></span><br><span class="line">   <span class="tag">&lt;<span class="name">value</span>&gt;</span>hdfs://192.168.10.129:9000/hbase<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="伪分布式配置"><a href="#伪分布式配置" class="headerlink" title="伪分布式配置"></a><strong>伪分布式配置</strong></h2><p>修改hbase-env.sh，添加以下内容</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">export JAVA_HOME=/usr/lib/jvm/jdk1.8.0_241</span><br><span class="line"></span><br><span class="line">export HBASE_CLASSPATH=/usr/local/hbase/conf</span><br><span class="line"></span><br><span class="line">export HBASE_MANAGES_ZK=true</span><br></pre></td></tr></table></figure>
+
+<p>编辑完成后使用source使修改生效</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> hbase-env.sh</span><br></pre></td></tr></table></figure>
+
+<p>修改hbase的配置文件hbase-site.xml</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /usr/local/hbase/conf</span><br><span class="line"></span><br><span class="line">vim hbase-site.xml</span><br></pre></td></tr></table></figure>
+
+<p>添加以下内容</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.cluster.distributed<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">value</span>&gt;</span>true<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.tmp.dir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">value</span>&gt;</span>./tmp<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.unsafe.stream.capability.enforce<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">value</span>&gt;</span>false<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">   <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.rootdir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"></span><br><span class="line">   <span class="tag">&lt;<span class="name">value</span>&gt;</span>hdfs://192.168.10.129:9000/hbase<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.zookeeper.quorum<span class="tag">&lt;/<span class="name">name</span>&gt;</span> <span class="comment">&lt;!-- 表示使用hbase自带的zookeeper --&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">value</span>&gt;</span>192.168.10.129<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.zookeeper.property.clientPort<span class="tag">&lt;/<span class="name">name</span>&gt;</span> <span class="comment">&lt;!-- zookeeper的端口号 --&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">value</span>&gt;</span>2181<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.zookeeper.property.dataDir<span class="tag">&lt;/<span class="name">name</span>&gt;</span> <span class="comment">&lt;!-- zookeeper的data保存目录 --&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">value</span>&gt;</span>/usr/local/hbase/zookeeper_data<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>即可启动进行测试</p>
+<p>先启动hadoop</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/local/hadoop/sbin/start-dfs.sh</span><br></pre></td></tr></table></figure>
+
+<p>再启动hbase</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/local/hbase/bin/start-hbase.sh</span><br></pre></td></tr></table></figure>
+
+<p>再输入jps查看进程数，HMaster，HRegionServer，HQuorumPeer即代表Hbase的服务节点</p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml20688\wps3.jpg" alt="img"> </p>
+<p>此时查看HDFS可以看到有一个hbase文件夹用于存储hbase的数据</p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml20688\wps4.jpg" alt="img"> </p>
+<p>注意：操作 Hadoop和 HBase的执行顺序是：启动Hadoop—&gt;启动HBase—&gt;关闭HBase—&gt;关闭Hadoop。</p>
+<p>同时，hbase还提供了web管理页面</p>
+<p>访问IP:16010端口</p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml20688\wps5.jpg" alt="img"> </p>
+<h2 id="完全分布式式安装"><a href="#完全分布式式安装" class="headerlink" title="完全分布式式安装"></a><strong>完全分布式式安装</strong></h2><p>参考文章如下所示：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_45366499/article/details/106870162">Centos7下HBase安装与配置（亲测！）_centos按照hbase1.2.0-CSDN博客</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_45366499/article/details/106782337">Centos下ZooKeeper安装部署配置（集群模式）_grep: &#x2F;opt&#x2F;zookeeper&#x2F;apache-zookeeper-3.8.3-bin&#x2F;bi-CSDN博客</a></p>
+<p>首先需要在三台机器上安装zookeeper</p>
+<p>下载安装包</p>
+<p>修改权限</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> u+x zookeeper-3.4.13.tar.gz</span><br></pre></td></tr></table></figure>
+
+<p>解压压缩包</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -zxvf zookeeper-3.4.13.tar.gz</span><br></pre></td></tr></table></figure>
+
+<p>创建软链接</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ln</span> -s zookeeper-3.4.13 zookeeper</span><br></pre></td></tr></table></figure>
+
+<p>修改配置文件</p>
+<p>需要注意的是，要先重命名配置文件，配置文件一般位于zookeeper的conf目录下</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mv</span> zoo_sample.cfg  zoo.cfg</span><br></pre></td></tr></table></figure>
+
+<p>然后需要创建目录，在zookeeper目录下创建 &#x2F;tmp&#x2F;data</p>
+<p>然后创建文件myid</p>
+<p>输入数字1，然后保存退出（注意，这里的1相当于服务的标识符，每个服务有一个唯一的服务ID）</p>
+<p>修改zoo.cfg</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim zoo.cfg</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">#The number of milliseconds of each tick</span><br><span class="line"></span><br><span class="line">tickTime=2000</span><br><span class="line"></span><br><span class="line">#The number of ticks that the initial </span><br><span class="line"></span><br><span class="line">#synchronization phase can take</span><br><span class="line"></span><br><span class="line">initLimit=5</span><br><span class="line"></span><br><span class="line">#The number of ticks that can pass between </span><br><span class="line"></span><br><span class="line">#sending a request and getting an acknowledgement</span><br><span class="line"></span><br><span class="line">syncLimit=2</span><br><span class="line"></span><br><span class="line">#the directory where the snapshot is stored.</span><br><span class="line"></span><br><span class="line">#do not use /tmp for storage, /tmp here is just </span><br><span class="line"></span><br><span class="line">#example sakes.</span><br><span class="line"></span><br><span class="line">#**这个地方填写自己的路径**</span><br><span class="line"></span><br><span class="line">dataDir=/opt/Hadoop/zookeeper/tmp/data</span><br><span class="line"></span><br><span class="line">#the port at which the clients will connect</span><br><span class="line"></span><br><span class="line">clientPort=2181</span><br><span class="line"></span><br><span class="line">#the maximum number of client connections.</span><br><span class="line"></span><br><span class="line">#increase this if you need to handle more clients</span><br><span class="line"></span><br><span class="line">#maxClientCnxns=60 </span><br><span class="line"></span><br><span class="line">#服务器名称与地址:集群信息(服务器编号、服务器编号、服务器地址、LF通信端口、选举端口)</span><br><span class="line"></span><br><span class="line">server.1=node1:2888:3888</span><br><span class="line"></span><br><span class="line">server.2=node2:2888:3888</span><br><span class="line"></span><br><span class="line">server.3=node3:2888:3888</span><br></pre></td></tr></table></figure>
+
+<p>然后就是分发文件，把一台主机上的配置分发到其他主机上，使用脚本xsync</p>
+<p>然后把myid文件修改一下，比如第二台机器就修改为2，以此类推</p>
+<p>然后就是启动zookeeper </p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">zkServer.sh start</span><br></pre></td></tr></table></figure>
+
+<p>安装完zookeeper以后就可以开始安装hbase了</p>
+<p>上传安装包</p>
+<p>修改权限</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> u+x hbase-1.2.0-cdh5.9.3.tar.gz</span><br></pre></td></tr></table></figure>
+
+<p>解压</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -zxvf hbase-1.2.0-cdh5.9.3.tar.gz</span><br></pre></td></tr></table></figure>
+
+<p>建立软链接</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ln</span> -s hbase-1.2.0-cdh5.9.3 hbase</span><br></pre></td></tr></table></figure>
+
+<p>配置环境变量</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim ~/.bashrc</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">export HBASE_HOME=/opt/Hadoop/hbase</span><br><span class="line"></span><br><span class="line">export PATH=$HBASE_HOME/bin:$PATH</span><br></pre></td></tr></table></figure>
+
+<p>然后退出，执行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> ~/.bashrc</span><br></pre></td></tr></table></figure>
+
+<p>修改配置文件，配置文件一般位于hbase的conf目录下</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim hbase-env.sh</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">export JAVA_HOME=/opt/Hadoop/jdk1.8.0_162 # 改成自己的jdk路径</span><br><span class="line"></span><br><span class="line">export HBASE_MANAGES_ZK=false</span><br></pre></td></tr></table></figure>
+
+<p>然后在hbase目录下创建存放zookeeper数据的文件</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> zookeeper-data</span><br></pre></td></tr></table></figure>
+
+<p>修改配置文件</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim hbase-site.xml</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line"></span><br><span class="line">     <span class="comment">&lt;!-- Hbase的数据保存在HDFS对应的目录下 --&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.rootdir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hdfs://node1:8020/hbase<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> </span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 是否是分布式环境 --&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.cluster.distributed<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>true<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> </span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 配置ZK的地址，3个节点都启用Zookeeper --&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">       <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.zookeeper.quorum<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"></span><br><span class="line">       <span class="tag">&lt;<span class="name">value</span>&gt;</span>node1,node2,node3<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line">   <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> </span><br><span class="line"></span><br><span class="line">   <span class="comment">&lt;!-- 冗余度 --&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.replication<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>2<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> </span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 主节点和从节点允许的最大时间误差 --&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.master.maxclockskew<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>180000<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"> </span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- zookeeper数据目录 --&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.zookeeper.property.dataDir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>/opt/Hadoop/hbase/zookeeper-data<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">		<span class="comment">&lt;!-- 设置网页端口号 --&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.master.info.port<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>60010<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"></span><br><span class="line">   <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>再修改regionservers，改成自己的</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim regionservers</span><br></pre></td></tr></table></figure>
+
+<p>然后就是使用脚本进行分发</p>
+<p>启动三台机器</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">start-hbase.sh</span><br></pre></td></tr></table></figure>
+
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml20688\wps6.jpg" alt="img"> </p>
+<h2 id="Bug提醒"><a href="#Bug提醒" class="headerlink" title="Bug提醒"></a><strong>Bug提醒</strong></h2><p>在启动HBASE时可能会报错</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SLF4J: Class path contains multiple SLF4J bindings.等等</span><br></pre></td></tr></table></figure>
+
+<p>只需要把hadoop或者HBASE目录结构中其中一个日志的jar包删除掉即可，具体位置需要看报错信息</p>
+<p>需要注意的是，删除HBASE目录下的slf4j-reloadxxxx以后，建议是把hadoop目录下同名的jar包复制过来，不然后面还会有其他报错</p>
+<p>同时建议修改hbase-env.sh</p>
+<p>新增</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">export Hbase_Disable_Hadoop_CLASSPATH_LOOKUP=true</span><br></pre></td></tr></table></figure>
+
+<p>Hadoop 安全模式，如果开启了hadoop的安全模式会导致HBASE的命令失效报错</p>
+<p>可以使用下述命令查看是否启动安全模式</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hadoop dfsadmin -safemode get</span><br></pre></td></tr></table></figure>
+
+<p>如果启动了可以使用下述命令关闭</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hadoop dfsadmin -safemode leave</span><br></pre></td></tr></table></figure>
+
+<p>如果一直无法关闭HBASE,可以使用下述命令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">hbase-daemon.sh stop master</span><br><span class="line"></span><br><span class="line">stop-hbase.sh</span><br></pre></td></tr></table></figure>
+
+<p>如果没用的话可以先关闭HDFS</p>
+<p>一切正常以后就可以进行正常使用，比如命令行的方式使用</p>
+<p>使用 hbase shell 进入命令行进行操作</p>
+<p>list 查看当前所有的表 </p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml20688\wps7.jpg" alt="img"> </p>
+<p>进行建表的时候也可能会报错</p>
+<p>比如：ERROR: org.apache.hadoop.hbase.PleaseHoldException: Master is initializing</p>
+<p>解决方法：删除HDFS下的HBASE目录以及zookeeper下的hbase目录</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hdfs dfs -<span class="built_in">rm</span> -r /hbase</span><br></pre></td></tr></table></figure>
+
+<p>如果使用的是外置的zookeeper的话，直接使用客户端进入zookeeper删除即可，如果是伪分布式，使用自带的zookeeper的话，就要去配置文件设置的存储文件夹寻找</p>
+<p>删除完后正常使用建表语句 </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">create ‘student’,’info’</span><br></pre></td></tr></table></figure>
+
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml20688\wps8.jpg" alt="img"> </p>
+<p>插入一条记录 </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">put ‘student’,’1001’,’info’,’male’</span><br></pre></td></tr></table></figure>
+
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml20688\wps9.jpg" alt="img"> </p>
+<p>查看表记录scan ‘student’</p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml20688\wps10.jpg" alt="img"> </p>
+<p>命令行操作：</p>
+<p>List：查看所有表</p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml20688\wps11.jpg" alt="img"> </p>
+<p>创建表</p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml20688\wps12.jpg" alt="img"> </p>
+<p>插入数据：</p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml20688\wps13.jpg" alt="img"> </p>
+<p>删除数据</p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml20688\wps14.jpg" alt="img"> </p>
+<p>删除表 drop 表名，要先禁用</p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml20688\wps15.jpg" alt="img"> </p>
+<p>Java操作：</p>
+<p>加载对应的依赖：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- https://mvnrepository.com/artifact/org.apache.hbase/hbase-client --&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line"></span><br><span class="line">      <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.hbase<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line"></span><br><span class="line">      <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>hbase-client<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"></span><br><span class="line">      <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.4.8<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- https://mvnrepository.com/artifact/org.apache.hbase/hbase --&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line"></span><br><span class="line">      <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.hbase<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line"></span><br><span class="line">      <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>hbase<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"></span><br><span class="line">     <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.4.8<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"></span><br><span class="line">      <span class="tag">&lt;<span class="name">type</span>&gt;</span>pom<span class="tag">&lt;/<span class="name">type</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<p>初始化连接配置</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//HBase Master地址，在hbase-site.xml中配置</span></span><br><span class="line"></span><br><span class="line">    conf.set(<span class="string">&quot;hbase.rootdir&quot;</span>, <span class="string">&quot;hdfs://hadoop102:8020/hbase&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//ZooKeeper三个服务器地址</span></span><br><span class="line"></span><br><span class="line">    conf.set(<span class="string">&quot;hbase.zookeeper.quorum&quot;</span>, <span class="string">&quot;hadoop102,hadoop103,hadoop104&quot;</span>);</span><br><span class="line"></span><br><span class="line"> </span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      connection = ConnectionFactory.createConnection(conf);</span><br><span class="line"></span><br><span class="line">      admin = connection.getAdmin();</span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line"></span><br><span class="line">      e.printStackTrace();</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p> 测试建表</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">createTable</span><span class="params">(String tableName)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line"></span><br><span class="line"> </span><br><span class="line"></span><br><span class="line">    <span class="comment">//通过管理员对象创建表</span></span><br><span class="line"></span><br><span class="line">    <span class="type">HTableDescriptor</span> <span class="variable">hTableDescriptor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">HTableDescriptor</span>(TableName.valueOf(tableName));</span><br><span class="line"></span><br><span class="line">    <span class="comment">//给表添加列族</span></span><br><span class="line"></span><br><span class="line">    <span class="type">HColumnDescriptor</span> <span class="variable">f1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">HColumnDescriptor</span>(<span class="string">&quot;f1&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="type">HColumnDescriptor</span> <span class="variable">f2</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">HColumnDescriptor</span>(<span class="string">&quot;f2&quot;</span>);</span><br><span class="line"></span><br><span class="line">   <span class="comment">//将两个列族设置到 创建的表中</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    hTableDescriptor.addFamily(f2);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//创建表</span></span><br><span class="line"></span><br><span class="line">    admin.createTable(hTableDescriptor);</span><br><span class="line">    <span class="comment">//关闭连接</span></span><br><span class="line"></span><br><span class="line">    admin.close();</span><br><span class="line"></span><br><span class="line">    connection.close();</span><br><span class="line"></span><br><span class="line">    System.out.println(<span class="string">&quot;创建表成功&quot;</span>);</span><br><span class="line"></span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>插入数据：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">addData</span><span class="params">(String tableName)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line"></span><br><span class="line"> </span><br><span class="line"></span><br><span class="line">    <span class="comment">//获取表对象</span></span><br><span class="line"></span><br><span class="line">    <span class="type">Table</span> <span class="variable">myuser</span> <span class="operator">=</span> connection.getTable(TableName.valueOf(tableName));</span><br><span class="line">    <span class="type">Put</span> <span class="variable">put</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Put</span>(<span class="string">&quot;0001&quot;</span>.getBytes());</span><br><span class="line"></span><br><span class="line">    put.addColumn(<span class="string">&quot;f1&quot;</span>.getBytes(), <span class="string">&quot;id&quot;</span>.getBytes(), Bytes.toBytes(<span class="number">1</span>));</span><br><span class="line"></span><br><span class="line">    put.addColumn(<span class="string">&quot;f1&quot;</span>.getBytes(), <span class="string">&quot;name&quot;</span>.getBytes(), Bytes.toBytes(<span class="string">&quot;小明&quot;</span>));</span><br><span class="line"></span><br><span class="line">    put.addColumn(<span class="string">&quot;f1&quot;</span>.getBytes(), <span class="string">&quot;age&quot;</span>.getBytes(), Bytes.toBytes(<span class="number">22</span>));</span><br><span class="line"></span><br><span class="line">    put.addColumn(<span class="string">&quot;f2&quot;</span>.getBytes(), <span class="string">&quot;sex&quot;</span>.getBytes(), Bytes.toBytes(<span class="string">&quot;男&quot;</span>));</span><br><span class="line"></span><br><span class="line">    put.addColumn(<span class="string">&quot;f2&quot;</span>.getBytes(), <span class="string">&quot;address&quot;</span>.getBytes(), Bytes.toBytes(<span class="string">&quot;青岛&quot;</span>));</span><br><span class="line"></span><br><span class="line">    put.addColumn(<span class="string">&quot;f2&quot;</span>.getBytes(), <span class="string">&quot;phone&quot;</span>.getBytes(), Bytes.toBytes(<span class="string">&quot;15900000001&quot;</span>));</span><br><span class="line">    put.addColumn(<span class="string">&quot;f2&quot;</span>.getBytes(), <span class="string">&quot;say&quot;</span>.getBytes(), Bytes.toBytes(<span class="string">&quot;你好&quot;</span>));</span><br><span class="line"></span><br><span class="line">    myuser.put(put);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//关闭表</span></span><br><span class="line"></span><br><span class="line">    myuser.close();</span><br><span class="line"></span><br><span class="line">    System.out.println(<span class="string">&quot;插入数据成功&quot;</span>);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>查看数据：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">scanAllData</span><span class="params">(String tableName)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line"></span><br><span class="line"> </span><br><span class="line"></span><br><span class="line">    <span class="comment">//获取表对象</span></span><br><span class="line"></span><br><span class="line">    <span class="type">Table</span> <span class="variable">myuser</span> <span class="operator">=</span> connection.getTable(TableName.valueOf(tableName));</span><br><span class="line"></span><br><span class="line">    <span class="type">Scan</span> <span class="variable">scan</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Scan</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">//设置起始和结束的rowkey,扫描结果是：[)类型</span></span><br><span class="line"></span><br><span class="line">    scan.setStartRow(<span class="string">&quot;0001&quot;</span>.getBytes());</span><br><span class="line"></span><br><span class="line">    scan.setStopRow(<span class="string">&quot;0008&quot;</span>.getBytes());</span><br><span class="line"></span><br><span class="line">    <span class="type">ResultScanner</span> <span class="variable">scanner</span> <span class="operator">=</span> myuser.getScanner(scan);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (Result result : scanner) &#123;</span><br><span class="line"></span><br><span class="line">      List&lt;Cell&gt; cells = result.listCells();</span><br><span class="line"></span><br><span class="line">      <span class="keyword">for</span> (Cell cell : cells) &#123;</span><br><span class="line"></span><br><span class="line">        <span class="type">String</span> <span class="variable">rowkey</span> <span class="operator">=</span> Bytes.toString(cell.getRowArray(), cell.getRowOffset(), cell.getRowLength());</span><br><span class="line"></span><br><span class="line">        <span class="comment">//获取列族的名称</span></span><br><span class="line"></span><br><span class="line">        <span class="type">String</span> <span class="variable">familyName</span> <span class="operator">=</span> Bytes.toString(cell.getFamilyArray(), cell.getFamilyOffset(), cell.getFamilyLength());</span><br><span class="line"></span><br><span class="line">        <span class="comment">//获取列的名称</span></span><br><span class="line"></span><br><span class="line">        <span class="type">String</span> <span class="variable">columnName</span> <span class="operator">=</span> Bytes.toString(cell.getQualifierArray(), cell.getQualifierOffset(), cell.getQualifierLength());</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (familyName.equals(<span class="string">&quot;f1&quot;</span>) &amp;&amp; columnName.equals(<span class="string">&quot;id&quot;</span>) || columnName.equals(<span class="string">&quot;age&quot;</span>)) &#123;</span><br><span class="line"></span><br><span class="line">          <span class="type">int</span> <span class="variable">value</span> <span class="operator">=</span> Bytes.toInt(cell.getValueArray(), cell.getValueOffset(), cell.getValueLength());</span><br><span class="line"></span><br><span class="line">         System.out.println(<span class="string">&quot;列族名： &quot;</span> + familyName + <span class="string">&quot; ,列名： &quot;</span> + columnName + <span class="string">&quot; ,列值：&quot;</span> + value);</span><br><span class="line"></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line"></span><br><span class="line">          <span class="type">String</span> <span class="variable">value</span> <span class="operator">=</span> Bytes.toString(cell.getValueArray(), cell.getValueOffset(), cell.getValueLength());</span><br><span class="line"></span><br><span class="line">          System.out.println(<span class="string">&quot;列族名： &quot;</span> + familyName + <span class="string">&quot; ,列名： &quot;</span> + columnName + <span class="string">&quot; ,列值：&quot;</span> + value);</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//获取返回结果</span></span><br><span class="line"></span><br><span class="line">    myuser.close();</span><br><span class="line"></span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p> 结果如下所示</p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml20688\wps16.jpg" alt="img"> </p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/23/hadoop%E4%BC%AA%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%89%E8%A3%85/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="sakura">
+      <meta itemprop="description" content="大数据废物的博客之旅">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Sakura的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/23/hadoop%E4%BC%AA%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%89%E8%A3%85/" class="post-title-link" itemprop="url">hadoop伪分布式安装</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-04-23 10:40:14 / 修改时间：10:42:02" itemprop="dateCreated datePublished" datetime="2024-04-23T10:40:14+08:00">2024-04-23</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>安装ifconfig</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install net-tools -y</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install net-tools -y</span><br></pre></td></tr></table></figure>
+
+<p>安装vim：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install vim-gtk</span><br></pre></td></tr></table></figure>
+
+<p>设置静态IP</p>
+<p>查看ip地址，子网掩码，网关地址</p>
+<p>ifconfig</p>
+<p>route -n</p>
+<p>设置root权限密码</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo passwd root</span><br></pre></td></tr></table></figure>
+
+<p>新增用户</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo useradd -m hadoop -s /bin/bash</span><br></pre></td></tr></table></figure>
+
+<p>设置密码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo passwd hadoop</span><br></pre></td></tr></table></figure>
+
+<p>添加sudo权限</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo adduser hadoop sudo</span><br></pre></td></tr></table></figure>
+
+<p>安装java8</p>
+<p>更新apt</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get update</span><br><span class="line"></span><br><span class="line">sudo apt-get install openjdk-8-jdk</span><br></pre></td></tr></table></figure>
+
+<p>配置环境变量</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Vim  ~/.bashrc</span><br></pre></td></tr></table></figure>
+
+<p>让配置生效</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">source ~/.bashrc</span><br></pre></td></tr></table></figure>
+
+<p>下载hadoop，使用wget下载</p>
+<p>Wget <a target="_blank" rel="noopener" href="https://mirrors.tuna.tsinghua.edu.cn/apache/hadoop/common/stable/hadoop-3.3.6.tar.gz">https://mirrors.tuna.tsinghua.edu.cn/apache/hadoop/common/stable/hadoop-3.3.6.tar.gz</a></p>
+<p>然后解压</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Tar -zxvf hadoop-3.3.6.tar.gz -C /usr/local</span><br></pre></td></tr></table></figure>
+
+<p>修改文件操作权限</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo chown -R hadoop ./hadoop</span><br></pre></td></tr></table></figure>
+
+<p>查看hadoop版本号</p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml12788\wps6.jpg" alt="img"> </p>
+<p>通过一个案例测试hadoop（查询符合条件的单词个数，结果保留到output文件夹）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">hadoop jar ./share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar grep ./input ./output &#x27;dfs[a-z.]+&#x27;</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>创建一个input文件夹</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Mkdir input</span><br></pre></td></tr></table></figure>
+
+<p>复制一些文件到input中，然后运行示例，结果保存在output文件夹当中</p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml12788\wps7.jpg" alt="img"> </p>
+<p>实现伪分布式需要修改的配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim ./etc/hadoop/core-site.xml</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">&lt;property&gt;</span><br><span class="line"></span><br><span class="line">		&lt;name&gt;hadoop.tmp.dir&lt;/name&gt;</span><br><span class="line"></span><br><span class="line">&lt;value&gt;file:/usr/local/hadoop/tmp&lt;/value&gt;</span><br><span class="line"></span><br><span class="line">		&lt;description&gt;Abase for other</span><br><span class="line"></span><br><span class="line">temporary directories.&lt;/description&gt;</span><br><span class="line"></span><br><span class="line">	&lt;/property&gt;</span><br><span class="line"></span><br><span class="line">	&lt;property&gt;</span><br><span class="line"></span><br><span class="line">		&lt;name&gt;fs.defaultFS&lt;/name&gt;</span><br><span class="line"></span><br><span class="line">&lt;value&gt;hdfs://localhost:9000&lt;/value&gt;</span><br><span class="line"></span><br><span class="line">	&lt;/property&gt;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim ./etc/hadoop/hdfs-site.xml</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">&lt;property&gt;</span><br><span class="line"></span><br><span class="line">		&lt;name&gt;dfs.replication&lt;/name&gt;</span><br><span class="line"></span><br><span class="line">		&lt;value&gt;1&lt;/value&gt;</span><br><span class="line"></span><br><span class="line">	&lt;/property&gt;</span><br><span class="line"></span><br><span class="line">	&lt;property&gt;</span><br><span class="line"></span><br><span class="line">		&lt;name&gt;dfs.namenode.name.dir&lt;/name&gt;</span><br><span class="line"></span><br><span class="line">		&lt;value&gt;file:/usr/local/hadoop/tmp/dfs/name&lt;/value&gt;</span><br><span class="line"></span><br><span class="line">	&lt;/property&gt;</span><br><span class="line"></span><br><span class="line">	&lt;property&gt;</span><br><span class="line"></span><br><span class="line">		&lt;name&gt;dfs.datanode.data.dir&lt;/name&gt;</span><br><span class="line"></span><br><span class="line">		&lt;value&gt;file:/usr/local/hadoop/tmp/dfs/data&lt;/value&gt;</span><br><span class="line"></span><br><span class="line">	&lt;/property&gt;</span><br></pre></td></tr></table></figure>
+
+<p>启动hdfs的namenode和守护进程</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">./bin/hdfs namenode -format</span><br><span class="line"></span><br><span class="line">./sbin/start-dfs.sh</span><br></pre></td></tr></table></figure>
+
+<p>通过jps命令查看是否启动成功</p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml12788\wps8.jpg" alt="img"> </p>
+<p>Bug记录：有的时候会无法启动成功，比如jps命令只显示了jps进程</p>
+<p>这里记录一下我的解决方案：</p>
+<p>首先查看前面的配置文件是否配置成功</p>
+<p>检查ssh是否配置成功</p>
+<p>方式：ssh localhost</p>
+<p>如果还需要输入密码才能登录就代表ssh没有配置成功</p>
+<p>解决方案：我是因为密钥的问题而导致的，所以只需要重新生成密钥并保存到指定为止即可解决</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ssh-keygen -t rsa -P &#x27;&#x27; -f ~/.ssh/id_rsa</span><br><span class="line"></span><br><span class="line">cat ~/.ssh/id_rsa.pub &gt;&gt; ~/.ssh/authorized_keys</span><br></pre></td></tr></table></figure>
+
+<p>还有可能会遇到localhost: Error: JAVA_HOME is not set and could not be found.这种报错</p>
+<p>但是Java -version又是正常的情况</p>
+<p>这个需要修改hadoop下的一个配置文件来解决</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim/usr/local/hadoop/etc/hadoop/hadoop-env.sh</span><br></pre></td></tr></table></figure>
+
+<p>把自己的Java安装路径放进去</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64</span><br></pre></td></tr></table></figure>
+
+
+
+<p>完成以后就可以在浏览器看到以下界面</p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml12788\wps9.jpg" alt="img"> </p>
+<p>关闭就是运行sbin目录下的停止脚本</p>
+<p><img src="file:///C:\Users\hp\AppData\Local\Temp\ksohtml12788\wps10.jpg" alt="img"> </p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2024/04/23/hadoop%E5%AE%8C%E5%85%A8%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%89%E8%A3%85/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="sakura">
+      <meta itemprop="description" content="大数据废物的博客之旅">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Sakura的博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2024/04/23/hadoop%E5%AE%8C%E5%85%A8%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%89%E8%A3%85/" class="post-title-link" itemprop="url">hadoop完全分布式安装</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-04-23 10:39:49 / 修改时间：10:41:48" itemprop="dateCreated datePublished" datetime="2024-04-23T10:39:49+08:00">2024-04-23</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="环境准备"><a href="#环境准备" class="headerlink" title="环境准备"></a>环境准备</h3><ul>
+<li>三台虚拟机（Centos7.6）</li>
+<li>固定IP地址<ul>
+<li>hadoop101 192.168.10.101</li>
+<li>hadoop102 192.168.10.102</li>
+<li>hadoop103 192.168.10.103</li>
+</ul>
+</li>
+</ul>
+<h3 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h3><p>关闭防火墙并关闭自启动</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">systemctl stop firewalld</span><br><span class="line">systemctl <span class="built_in">disable</span> firewalld.service</span><br></pre></td></tr></table></figure>
+
+<p>创建hadoop用户</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">useradd hadoop</span><br><span class="line">passwd hadoop</span><br></pre></td></tr></table></figure>
+
+<p>配置hadoop拥有root权限</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/sudoers</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">## Allow root to run any commands anywhere</span><br><span class="line">root    ALL=(ALL)     ALL</span><br><span class="line"></span><br><span class="line">## Allows people in group wheel to run all commands</span><br><span class="line">%wheel  ALL=(ALL)       ALL</span><br><span class="line">hadoop   ALL=(ALL)     NOPASSWD:ALL</span><br></pre></td></tr></table></figure>
+
+<p>在&#x2F;opt目录下新建module目录和software目录</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> /opt/module</span><br><span class="line"><span class="built_in">mkdir</span> /opt/software</span><br></pre></td></tr></table></figure>
+
+<p>修改module文件夹和software文件夹的所有者和所属组</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chown</span> hadoop:hadoop /opt/module</span><br><span class="line"><span class="built_in">chown</span> hadoop:hadoop /opt/software</span><br></pre></td></tr></table></figure>
+
+<p>卸载虚拟机自带的jdk</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rpm -qa | grep -i java | xargs -n1 rpm -e --nodeps </span><br></pre></td></tr></table></figure>
+
+<p>重启虚拟机</p>
+<p>设置静态IP地址（网关等信息从虚拟机的网络设置中查看）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/sysconfig/network-scripts/ifcfg-ens33</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">DEVICE=ens33</span><br><span class="line">TYPE=Ethernet</span><br><span class="line">ONBOOT=yes</span><br><span class="line">BOOTPROTO=static</span><br><span class="line">NAME=&quot;ens33&quot;</span><br><span class="line">IPADDR=192.168.10.102</span><br><span class="line">PREFIX=24</span><br><span class="line">GATEWAY=192.168.10.101</span><br><span class="line">DNS1=192.168.10.2</span><br></pre></td></tr></table></figure>
+
+<p>修改主机名称</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/hostname</span><br></pre></td></tr></table></figure>
+
+<p>修改hosts文件</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/hosts</span><br></pre></td></tr></table></figure>
+
+<p>添加对应的域名解析</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">192.168.10.101 hadoop101</span><br><span class="line">192.168.10.102 hadoop102</span><br><span class="line">192.168.10.103 hadoop103</span><br></pre></td></tr></table></figure>
+
+<p>同理，把三台虚拟机的IP地址和主机名都设置好</p>
+<p>修改Windows系统C:\Windows\System32\drivers\etc下的hosts文件，添加对应的dns信息</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">192.168.10.101 hadoop101</span><br><span class="line">192.168.10.102 hadoop102</span><br><span class="line">192.168.10.103 hadoop103</span><br></pre></td></tr></table></figure>
+
+<p>把jdk上传到&#x2F;opt&#x2F;software目录下，然后解压</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -zxvf jdk-8u212-linux-x64.tar.gz -C /opt/module/</span><br></pre></td></tr></table></figure>
+
+<p>配置jdk环境变量</p>
+<p>新建&#x2F;etc&#x2F;profile.d&#x2F;my_env.sh文件</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/profile.d/my_env.sh</span><br></pre></td></tr></table></figure>
+
+<p>添加以下内容</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">JAVA_HOME</span></span><br><span class="line">export JAVA_HOME=/opt/module/jdk1.8.0_212</span><br><span class="line">export PATH=$PATH:$JAVA_HOME/bin</span><br></pre></td></tr></table></figure>
+
+<p>使用source让配置生效</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> /etc/profile</span><br></pre></td></tr></table></figure>
+
+<p>测试是否安装成功</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -version</span><br></pre></td></tr></table></figure>
+
+<p>hadoop下载路径：<a target="_blank" rel="noopener" href="https://archive.apache.org/dist/hadoop/common/hadoop-2.7.2/">https://archive.apache.org/dist/hadoop/common/hadoop-3.1.3/</a></p>
+<p>上传到&#x2F;opt&#x2F;software目录下，然后解压到module目录下</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -zxvf hadoop-3.1.3.tar.gz -C /opt/module/</span><br></pre></td></tr></table></figure>
+
+<p>添加环境变量</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/profile.d/my_env.sh</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">HADOOP_HOME</span></span><br><span class="line">export HADOOP_HOME=/opt/module/hadoop-3.1.3</span><br><span class="line">export PATH=$PATH:$HADOOP_HOME/bin</span><br><span class="line">export PATH=$PATH:$HADOOP_HOME/sbin</span><br></pre></td></tr></table></figure>
+
+<p>让配置生效</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> /etc/profile</span><br></pre></td></tr></table></figure>
+
+<p>测试是否安装成功</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hadoop version</span><br></pre></td></tr></table></figure>
+
+<p>为了方便管理三台虚拟机，编写分发脚本xsync</p>
+<p>在&#x2F;home&#x2F;hadoop&#x2F;bin 目录下新建xsync文件</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /home/hadoop</span><br><span class="line"><span class="built_in">mkdir</span> bin</span><br><span class="line"><span class="built_in">cd</span> bin</span><br><span class="line">vim xsync</span><br></pre></td></tr></table></figure>
+
+<p>编写脚本</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/bash</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">1. 判断参数个数</span></span><br><span class="line">if [ $# -lt 1 ]</span><br><span class="line">then</span><br><span class="line">    echo Not Enough Arguement!</span><br><span class="line">    exit;</span><br><span class="line">fi</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">2. 遍历集群所有机器</span></span><br><span class="line">for host in hadoop101 hadoop102 hadoop103</span><br><span class="line">do</span><br><span class="line">    echo ====================  $host  ====================</span><br><span class="line">    #3. 遍历所有目录，挨个发送</span><br><span class="line"></span><br><span class="line">    for file in $@</span><br><span class="line">    do</span><br><span class="line">        #4. 判断文件是否存在</span><br><span class="line">        if [ -e $file ]</span><br><span class="line">            then</span><br><span class="line">                #5. 获取父目录</span><br><span class="line">                pdir=$(cd -P $(dirname $file); pwd)</span><br><span class="line"></span><br><span class="line">                #6. 获取当前文件的名称</span><br><span class="line">                fname=$(basename $file)</span><br><span class="line">                ssh $host &quot;mkdir -p $pdir&quot;</span><br><span class="line">                rsync -av $pdir/$fname $host:$pdir</span><br><span class="line">            else</span><br><span class="line">                echo $file does not exists!</span><br><span class="line">        fi</span><br><span class="line">    done</span><br><span class="line">done</span><br></pre></td></tr></table></figure>
+
+<p>修改权限</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> +x xsync</span><br></pre></td></tr></table></figure>
+
+
+
+<p>配置ssh免密登录</p>
+<p>生成密钥</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh-keygen -t rsa</span><br></pre></td></tr></table></figure>
+
+<p>然后一直敲回车</p>
+<p>复制密钥</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ssh-copy-id hadoop101</span><br><span class="line">ssh-copy-id hadoop102</span><br><span class="line">ssh-copy-id hadoop103</span><br></pre></td></tr></table></figure>
+
+
+
+<p>配置hadoop的文件</p>
+<p>配置core-site.xml</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> <span class="variable">$HADOOP_HOME</span>/etc/hadoop</span><br><span class="line">vim core-site.xml</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="meta">&lt;?xml-stylesheet type=<span class="string">&quot;text/xsl&quot;</span> href=<span class="string">&quot;configuration.xsl&quot;</span>?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 指定NameNode的地址 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>fs.defaultFS<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hdfs://hadoop101:8020<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 指定hadoop数据的存储目录 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>hadoop.tmp.dir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>/opt/module/hadoop-3.1.3/data<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 配置HDFS网页登录使用的静态用户为hadoop --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>hadoop.http.staticuser.user<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hadoop<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>配置hdfs-site.xml</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim hdfs-site.xml</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="meta">&lt;?xml-stylesheet type=<span class="string">&quot;text/xsl&quot;</span> href=<span class="string">&quot;configuration.xsl&quot;</span>?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">	<span class="comment">&lt;!-- nn web端访问地址--&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.namenode.http-address<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hadoop101:9870<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">	<span class="comment">&lt;!-- 2nn web端访问地址--&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.namenode.secondary.http-address<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hadoop103:9868<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>配置yarn-site.xml</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim yarn-site.xml</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="meta">&lt;?xml-stylesheet type=<span class="string">&quot;text/xsl&quot;</span> href=<span class="string">&quot;configuration.xsl&quot;</span>?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!-- 指定MR走shuffle --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.nodemanager.aux-services<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>mapreduce_shuffle<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 指定ResourceManager的地址--&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.resourcemanager.hostname<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hadoop102<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 环境变量的继承 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.nodemanager.env-whitelist<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_MAPRED_HOME<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>配置mapred-site.xml</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim mapred-site.xml</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;UTF-8&quot;</span>?&gt;</span></span><br><span class="line"><span class="meta">&lt;?xml-stylesheet type=<span class="string">&quot;text/xsl&quot;</span> href=<span class="string">&quot;configuration.xsl&quot;</span>?&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">	<span class="comment">&lt;!-- 指定MapReduce程序运行在Yarn上 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>mapreduce.framework.name<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>yarn<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>然后分发配置文件</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">xsync /opt/module/hadoop-3.1.3/etc/hadoop/</span><br></pre></td></tr></table></figure>
+
+<p>三台主机都查看一下配置文件是否正确修改</p>
+<p>配置workers</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /opt/module/hadoop-3.1.3/etc/hadoop/workers</span><br></pre></td></tr></table></figure>
+
+<p>新增</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">hadoop101</span><br><span class="line">hadoop102</span><br><span class="line">hadoop103</span><br></pre></td></tr></table></figure>
+
+<p>然后同步所有主机</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">xsync /opt/module/hadoop-3.1.3/etc</span><br></pre></td></tr></table></figure>
+
+<p>第一次启动需要先格式化hdfs</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hdfs namenode -format</span><br></pre></td></tr></table></figure>
+
+<p>然后启动hdfs</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sbin/start-dfs.sh</span><br></pre></td></tr></table></figure>
+
+<p>hadoop102启动yarn</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sbin/start-yarn.sh</span><br></pre></td></tr></table></figure>
+
+<p>浏览器输入<a href="http://hadoop101:9870查看hdfs的NameNode">http://hadoop101:9870查看hdfs的NameNode</a></p>
+<p>在<a target="_blank" rel="noopener" href="http://hadoop102:8088/">http://hadoop102:8088</a> 查看yarn</p>
+<p>启动&#x2F;关闭集群</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">start-dfs.sh/stop-dfs.sh</span><br><span class="line">start-yarn.sh/stop-yarn.sh</span><br></pre></td></tr></table></figure>
+
+
+
+<p>为了方便启动和关闭集群，编写脚本</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /home/hadoop/bin</span><br><span class="line">vim myhadoop.sh</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/bash</span></span><br><span class="line"></span><br><span class="line">if [ $# -lt 1 ]</span><br><span class="line">then</span><br><span class="line">    echo &quot;No Args Input...&quot;</span><br><span class="line">    exit ;</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line">case $1 in</span><br><span class="line">&quot;start&quot;)</span><br><span class="line">        echo &quot; =================== 启动 hadoop集群 ===================&quot;</span><br><span class="line"></span><br><span class="line">        echo &quot; --------------- 启动 hdfs ---------------&quot;</span><br><span class="line">        ssh hadoop101 &quot;/opt/module/hadoop-3.1.3/sbin/start-dfs.sh&quot;</span><br><span class="line">        echo &quot; --------------- 启动 yarn ---------------&quot;</span><br><span class="line">        ssh hadoop102 &quot;/opt/module/hadoop-3.1.3/sbin/start-yarn.sh&quot;</span><br><span class="line">        echo &quot; --------------- 启动 historyserver ---------------&quot;</span><br><span class="line">        ssh hadoop101 &quot;/opt/module/hadoop-3.1.3/bin/mapred --daemon start historyserver&quot;</span><br><span class="line">;;</span><br><span class="line">&quot;stop&quot;)</span><br><span class="line">        echo &quot; =================== 关闭 hadoop集群 ===================&quot;</span><br><span class="line"></span><br><span class="line">        echo &quot; --------------- 关闭 historyserver ---------------&quot;</span><br><span class="line">        ssh hadoop101 &quot;/opt/module/hadoop-3.1.3/bin/mapred --daemon stop historyserver&quot;</span><br><span class="line">        echo &quot; --------------- 关闭 yarn ---------------&quot;</span><br><span class="line">        ssh hadoop102 &quot;/opt/module/hadoop-3.1.3/sbin/stop-yarn.sh&quot;</span><br><span class="line">        echo &quot; --------------- 关闭 hdfs ---------------&quot;</span><br><span class="line">        ssh hadoop101 &quot;/opt/module/hadoop-3.1.3/sbin/stop-dfs.sh&quot;</span><br><span class="line">;;</span><br><span class="line">*)</span><br><span class="line">    echo &quot;Input Args Error...&quot;</span><br><span class="line">;;</span><br><span class="line">esac</span><br></pre></td></tr></table></figure>
+
+<p>修改权限</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> +x myhadoop.sh</span><br></pre></td></tr></table></figure>
+
+<p>同理编写查看集群进程的脚本</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /home/hadoop/bin</span><br><span class="line">vim jpsall</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/bash</span></span><br><span class="line"></span><br><span class="line">for host in hadoop101 hadoop102 hadoop103</span><br><span class="line">do</span><br><span class="line">        echo =============== $host ===============</span><br><span class="line">        ssh $host jps </span><br><span class="line">done</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://example.com/2023/07/13/%E7%AC%AC%E5%9B%9B%E7%AB%A0-Linux%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E7%AF%87/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -799,7 +1826,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">4</span>
+          <span class="site-state-item-count">9</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -827,7 +1854,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
